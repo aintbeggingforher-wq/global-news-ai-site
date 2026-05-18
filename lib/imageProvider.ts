@@ -29,8 +29,11 @@ export function getImageProviderStatus() {
   };
 }
 
-function authHeaders() {
-  if (HF_KEY) return { Authorization: `Bearer ${HF_KEY}` };
+function authHeaders(): Record<string, string> {
+  if (HF_KEY) {
+    return { Authorization: `Bearer ${HF_KEY}` };
+  }
+
   if (HF_API_KEY && HF_API_SECRET) {
     return {
       "X-HF-API-Key": HF_API_KEY,
@@ -38,6 +41,7 @@ function authHeaders() {
       Authorization: `Bearer ${HF_API_KEY}:${HF_API_SECRET}`,
     };
   }
+
   return {};
 }
 
