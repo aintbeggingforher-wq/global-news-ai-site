@@ -1,4 +1,4 @@
-import { uploadGeneratedImage } from "./storage";
+import { uploadGeneratedImage, uploadPngToStorage } from "./storage";
 
 export type ImageProviderResult = {
   imageUrl: string | null;
@@ -60,7 +60,7 @@ function extractImageUrl(data: any): string | null {
   );
 }
 
-async function generateWithHiggsfield(opts: { postId: string; prompt: string }): Promise<ImageProviderResult> {
+async function generateWithHiggsfield(opts: { postId: string; prompt: string; path?: string }): Promise<ImageProviderResult> {
   if (!HF_KEY && !(HF_API_KEY && HF_API_SECRET)) {
     return { imageUrl: null, error: "Missing Higgsfield credentials. Add HF_KEY or HF_API_KEY + HF_API_SECRET in Vercel." };
   }
@@ -83,14 +83,16 @@ async function generateWithHiggsfield(opts: { postId: string; prompt: string }):
     const generatedUrl = extractImageUrl(data);
     if (!generatedUrl) return { imageUrl: null, error: `Higgsfield response did not include an image URL. Response: ${JSON.stringify(data).slice(0, 800)}` };
     const b64 = await downloadAsBase64(generatedUrl);
-    const publicUrl = await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
+    const publicUrl = opts.path
+      ? await uploadPngToStorage({ path: opts.path, base64Png: b64 })
+      : await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
     return { imageUrl: publicUrl, providerUrl: generatedUrl, error: publicUrl ? null : "Supabase upload failed after Higgsfield generation." };
   } catch (error: any) {
     return { imageUrl: null, error: error?.message || "Unknown Higgsfield image error." };
   }
 }
 
-async function generateWithOpenAI(opts: { postId: string; prompt: string }): Promise<ImageProviderResult> {
+async function generateWithOpenAI(opts: { postId: string; prompt: string; path?: string }): Promise<ImageProviderResult> {
   if (!OPENAI_API_KEY) return { imageUrl: null, error: "Missing OPENAI_API_KEY." };
   try {
     const res = await fetch("https://api.openai.com/v1/images/generations", {
@@ -102,14 +104,16 @@ async function generateWithOpenAI(opts: { postId: string; prompt: string }): Pro
     const data = await res.json();
     const b64 = data.data?.[0]?.b64_json;
     if (!b64) return { imageUrl: null, error: "OpenAI did not return b64_json." };
-    const publicUrl = await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
+    const publicUrl = opts.path
+      ? await uploadPngToStorage({ path: opts.path, base64Png: b64 })
+      : await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
     return { imageUrl: publicUrl, error: publicUrl ? null : "Supabase upload failed." };
   } catch (error: any) {
     return { imageUrl: null, error: error?.message || "Unknown OpenAI image error." };
   }
 }
 
-export async function generateEditorialImage(opts: { postId: string; prompt: string }): Promise<ImageProviderResult> {
+export async function generateEditorialImage(opts: { postId: string; prompt: string; path?: string }): Promise<ImageProviderResult> {
   if (process.env.GENERATE_IMAGES !== "true") return { imageUrl: null, error: "GENERATE_IMAGES is not set to true." };
   if (PROVIDER === "openai") return generateWithOpenAI(opts);
   const hf = await generateWithHiggsfield(opts);
