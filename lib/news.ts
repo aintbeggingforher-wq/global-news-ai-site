@@ -118,7 +118,7 @@ async function fetchDailyArticles(): Promise<RawArticle[]> {
       if (!article) continue;
       seen.add(article.url);
       out.push(article);
-      batch.articles = batch.articles.filter((candidate) => candidate.url !== article.url);
+      batch.articles = batch.articles.filter((candidate: RawArticle) => candidate.url !== article.url);
       if (out.length >= MAX_DAILY_POSTS) return out;
     }
   }
