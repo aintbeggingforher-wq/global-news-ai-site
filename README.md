@@ -63,3 +63,23 @@ delete from posts
 where image_url is null
    or image_url = '';
 ```
+
+
+## Timeout-safe Vercel settings
+
+Recommended Vercel environment variables for Hobby plan:
+
+```env
+MAX_DAILY_POSTS=3
+IMAGE_GENERATION_LIMIT=2
+VIDEO_PROBABILITY=0.15
+```
+
+Then run the cron multiple times instead of generating many posts in one request.
+
+To fill missing images in small batches:
+
+```bash
+curl -sS -X GET "https://your-site.vercel.app/api/maintenance/fill-images?limit=2" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```

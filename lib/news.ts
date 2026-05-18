@@ -9,8 +9,8 @@ const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
 const POSTS_PER_SECTION = Math.max(1, Number(process.env.POSTS_PER_SECTION || "1"));
-const MAX_DAILY_POSTS = Math.max(6, Number(process.env.MAX_DAILY_POSTS || "10"));
-const IMAGE_GENERATION_LIMIT = Math.max(0, Number(process.env.IMAGE_GENERATION_LIMIT || "10"));
+const MAX_DAILY_POSTS = Number(process.env.MAX_DAILY_POSTS || 3);
+const IMAGE_GENERATION_LIMIT = Number(process.env.IMAGE_GENERATION_LIMIT || 2);
 
 export type BuildDailyResult = {
   posts: NewsPost[];
@@ -254,6 +254,7 @@ Articles:\n${articleBlock}`;
 
 async function attachVideos(posts: NewsPost[]) {
   const results: NewsPost[] = [];
+  let generatedCount = 0;
   for (const post of posts) {
     const video = await findOfficialYoutubeVideo({ title: post.title, sourceName: post.source_name, category: post.category });
     results.push(video ? { ...post, ...video } : post);
@@ -264,6 +265,7 @@ async function attachVideos(posts: NewsPost[]) {
 async function attachImages(posts: NewsPost[]): Promise<BuildDailyResult> {
   const imageErrors: BuildDailyResult["imageErrors"] = [];
   const results: NewsPost[] = [];
+  let generatedCount = 0;
 
   for (let index = 0; index < posts.length; index++) {
     const post = posts[index];
@@ -271,7 +273,13 @@ async function attachImages(posts: NewsPost[]): Promise<BuildDailyResult> {
       results.push(post);
       continue;
     }
+    if (generatedCount >= IMAGE_GENERATION_LIMIT) {
+      results.push({ ...post, image_url: post.image_url || null });
+      continue;
+    }
+
     const image = await generateAndUploadImage({ postId: post.id, prompt: post.image_prompt });
+    generatedCount++;
     if (image.error) imageErrors.push({ id: post.id, title: post.title, error: image.error });
     results.push({ ...post, image_url: image.imageUrl });
   }
