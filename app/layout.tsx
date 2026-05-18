@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "The Daily Edit",
-  description: "A soft daily edit of the biggest U.S. stories, summarized clearly with original sources.",
+  title: "The American Daily",
+  description: "A classic American-style daily newspaper covering major U.S. stories with sourced summaries and editorial images.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

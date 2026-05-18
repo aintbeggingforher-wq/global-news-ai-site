@@ -110,10 +110,11 @@ Rules:
 - Never invent facts that are not present in the title or description.
 - Summarize each story in 1 to 2 short sentences.
 - Keep the tone clear, modern, and slightly viral, but serious.
-- Generate an editorial/conceptual AI image prompt for each story.
-- The image prompt must fit the article and should produce a strong news-style illustration.
-- The image prompt must not create a fake realistic photo of a real event.
-- Prefer editorial illustration, cinematic concept art, or magazine-style breaking-news visuals.
+- Generate a highly realistic editorial news image prompt for each story.
+- The image prompt must fit the article and should produce a powerful, believable, photojournalism-style image.
+- The image must be clearly usable as an AI-generated editorial reconstruction/visual, not presented as an actual documentary photo.
+- Avoid logos, watermarks, readable text, real private individuals, and exact claims that the image depicts the real scene.
+- Prefer realistic American newspaper photojournalism style, natural lighting, detailed environment, and strong composition.
 - Return exactly this format:
 [
   {
@@ -175,7 +176,7 @@ ${articleBlock}
 }
 
 function defaultImagePrompt(article: RawArticle) {
-  return `Editorial conceptual AI illustration for a U.S. news story: "${article.title}". Strong magazine-style breaking-news composition, symbolic and clearly illustrative, not a fake real-world event photo, no news outlet logos, dramatic lighting, high quality.`;
+  return `Highly realistic editorial AI-generated news image for a U.S. story: "${article.title}". Photojournalism-style composition, believable natural lighting, detailed American setting, strong realism, no logos, no watermarks, no readable text, not presented as an actual event photo.`;
 }
 
 function articleToPost(article: RawArticle): NewsPost {

@@ -1,12 +1,14 @@
-# The Daily Edit
+# The American Daily
 
-A softer daily U.S. news website with sourced summaries and editorial AI-assisted visuals.
+A classic American newspaper-style daily U.S. news site with sourced summaries and realistic editorial AI-generated visuals.
 
 ## Brand direction
 
-- Public name: The Daily Edit
-- Tone: calm, clear, modern, female-friendly, lifestyle editorial
-- Visual style: warm cream background, soft blush accents, rounded cards, readable summaries
+- Public name: The American Daily
+- Layout: traditional U.S. front-page newspaper
+- Style: masthead, edition line, newspaper columns, lead story, top stories, latest dispatches
+- Image style: highly realistic editorial AI-generated visuals
+- Important: visuals are labeled as editorial AI-generated images, not actual event photographs
 
 ## Required environment variables
 
@@ -36,4 +38,12 @@ curl -X GET https://your-site.vercel.app/api/debug/image \
 ```bash
 curl -X GET https://your-site.vercel.app/api/cron/daily \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+## Clean posts without images
+
+```sql
+delete from posts
+where image_url is null
+   or image_url = '';
 ```
