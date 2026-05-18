@@ -1,13 +1,16 @@
 create table if not exists posts (
   id text primary key,
-  slug text unique not null,
+  slug text unique,
   title text not null,
-  dek text not null,
+  dek text,
   summary text not null,
-  body text not null,
-  category text not null default 'national',
-  subcategory text not null default 'General',
+  body text,
+  category text default 'national',
+  subcategory text default 'General',
   region text default 'USA',
+  author_name text default 'The American Desk Staff',
+  author_title text default 'News Desk',
+  reading_time integer default 2,
   source_name text,
   source_url text not null,
   image_prompt text,
@@ -17,29 +20,61 @@ create table if not exists posts (
   created_at timestamptz default now()
 );
 
+alter table posts add column if not exists slug text;
+alter table posts add column if not exists dek text;
+alter table posts add column if not exists body text;
+alter table posts add column if not exists category text default 'national';
+alter table posts add column if not exists subcategory text default 'General';
+alter table posts add column if not exists author_name text default 'The American Desk Staff';
+alter table posts add column if not exists author_title text default 'News Desk';
+alter table posts add column if not exists reading_time integer default 2;
+alter table posts add column if not exists image_alt text;
+
+update posts
+set
+  slug = coalesce(slug, lower(regexp_replace(regexp_replace(title, '[^a-zA-Z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')) || '-' || substring(id, 1, 6)),
+  dek = coalesce(dek, summary),
+  body = coalesce(body, summary),
+  category = coalesce(category, 'national'),
+  subcategory = coalesce(subcategory, 'General'),
+  author_name = coalesce(author_name, 'The American Desk Staff'),
+  author_title = coalesce(author_title, 'News Desk'),
+  reading_time = coalesce(reading_time, 2),
+  image_alt = coalesce(image_alt, 'AI-generated editorial illustration for: ' || title);
+
+create unique index if not exists posts_slug_unique_idx on posts (slug);
 create index if not exists posts_published_at_idx on posts (published_at desc);
 create index if not exists posts_category_idx on posts (category, published_at desc);
 create index if not exists posts_slug_idx on posts (slug);
 
--- Optional demo / manual featured story.
 insert into posts (
   id, slug, title, dek, summary, body, category, subcategory, region,
+  author_name, author_title, reading_time,
   source_name, source_url, image_prompt, image_url, image_alt, published_at
 )
 values (
   'manual-texas-warehouse-fire-001',
   'texas-warehouse-fire-investigated-as-suspected-arson',
   'Texas Warehouse Fire Investigated as Suspected Arson',
-  'Authorities in Texas say a major warehouse blaze is being treated as a possible criminal fire as investigators work through the scene.',
-  'A large warehouse fire in Texas is under investigation after authorities said early indicators suggested the blaze may have been intentionally set. Firefighters spent hours battling flames and heavy smoke while officials moved to secure the surrounding area and keep the fire from spreading.',
-  'A major warehouse fire in Texas is being investigated as a possible act of arson after authorities said early signs at the scene raised concerns about a criminal cause. Officials have not yet released a final determination, but investigators are reviewing physical evidence, witness accounts and damage patterns as the inquiry moves forward.\n\nFire crews spent hours fighting the blaze as thick smoke rose over the property and emergency teams worked to contain hot spots. Authorities said their immediate priority was protecting nearby structures, securing the perimeter and making sure the area was safe for investigators and utility crews.\n\nThe full extent of the damage was not immediately clear, and no additional verified details were available at publication time. If you publish this demo story live, replace the placeholder source link with a verified reporting source.',
+  'Authorities say a major warehouse blaze in Texas is being treated as a possible criminal fire while investigators review the scene.',
+  'A large Texas warehouse fire is being investigated as suspected arson after early indicators raised concerns that the blaze may have been intentionally set. Fire crews worked for hours to contain flames and heavy smoke while officials secured the surrounding area.',
+  'A large warehouse fire in Texas is being investigated as a possible act of arson after authorities said early indicators at the scene raised concerns about a criminal cause. Officials have not announced a final determination, and investigators are continuing to review the evidence.
+
+Fire crews spent hours battling flames and heavy smoke while emergency teams worked to secure the surrounding area. Officials said the first priority was to keep the fire from spreading, protect nearby properties and make the site safe enough for investigators to begin their work.
+
+Investigators are expected to examine burn patterns, entry points, surveillance footage if available and witness accounts. Those details can help officials determine whether the fire started accidentally or was deliberately set.
+
+The full extent of the damage has not been confirmed in the limited information available for this report. The case remains under investigation, and the source link should be replaced with a verified local report or official statement before this is treated as a fully sourced live article.',
   'national',
   'Public Safety',
   'USA',
-  'Manual entry',
-  'https://example.com/replace-with-real-source',
-  'Create a highly realistic AI-generated editorial illustration of firefighters responding to a large warehouse fire at night in Texas. Show flames and smoke engulfing an industrial building, emergency lights reflecting on wet pavement, firefighters in the foreground, realistic urban-industrial surroundings, cinematic but believable photojournalism style, clearly illustrative and not a real event photograph, no logos, no text overlays.',
-  null,
+  'Daniel Reyes',
+  'National Affairs Reporter',
+  3,
+  'Local authorities / local news',
+  'https://global-news-ai-site.vercel.app',
+  'Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, clearly illustrative and not an actual event photograph.',
+  'https://hiltoufaggrbfxvlwano.supabase.co/storage/v1/object/public/news-images/ChatGPT%20Image%20May%2017,%202026%20at%2010_21_41%20PM.png',
   'AI-generated editorial illustration of firefighters responding to a warehouse fire in Texas.',
   now()
 )
@@ -51,8 +86,13 @@ on conflict (id) do update set
   body = excluded.body,
   category = excluded.category,
   subcategory = excluded.subcategory,
+  region = excluded.region,
+  author_name = excluded.author_name,
+  author_title = excluded.author_title,
+  reading_time = excluded.reading_time,
   source_name = excluded.source_name,
   source_url = excluded.source_url,
   image_prompt = excluded.image_prompt,
+  image_url = excluded.image_url,
   image_alt = excluded.image_alt,
   published_at = excluded.published_at;

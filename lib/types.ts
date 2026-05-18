@@ -17,6 +17,9 @@ export type NewsPost = {
   category: string;
   subcategory: string;
   region: string;
+  author_name: string;
+  author_title: string;
+  reading_time: number;
   source_name: string;
   source_url: string;
   image_prompt: string;

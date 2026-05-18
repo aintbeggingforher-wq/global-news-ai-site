@@ -15,19 +15,15 @@ function isAuthorized(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+  if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const result = await buildDailyPosts();
   await insertPosts(result.posts);
-
   return NextResponse.json({
     ok: true,
     created: result.posts.length,
-    images_created: result.posts.filter((p) => Boolean(p.image_url)).length,
+    images_created: result.posts.filter((post) => post.image_url).length,
     image_config: getImageConfigStatus(),
     image_errors: result.imageErrors,
-    posts: result.posts.map((p) => ({ id: p.id, slug: p.slug, title: p.title, image_url: p.image_url, source_url: p.source_url }))
+    posts: result.posts.map((post) => ({ slug: post.slug, title: post.title, author: post.author_name, image_url: post.image_url, source_url: post.source_url }))
   });
 }

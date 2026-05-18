@@ -1,6 +1,8 @@
 import crypto from "crypto";
-import { generateAndUploadImage } from "./image";
+import { getAuthorForCategory } from "./authors";
 import { categorizeText } from "./categories";
+import { readingTimeFromText } from "./format";
+import { generateAndUploadImage } from "./image";
 import type { NewsPost, RawArticle } from "./types";
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
@@ -17,24 +19,19 @@ function hash(input: string) {
 }
 
 function slugify(input: string) {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
+  return input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 }
 
 function safeText(input?: string | null) {
   return (input || "").replace(/\s+/g, " ").trim();
 }
 
-function formatSourceName(hostOrName?: string | null) {
-  return safeText(hostOrName) || "Source";
+function safeBody(input?: string | null) {
+  return (input || "").replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 async function fetchFromNewsApi(): Promise<RawArticle[]> {
   if (!NEWS_API_KEY) return [];
-
   const url = new URL("https://newsapi.org/v2/top-headlines");
   url.searchParams.set("country", "us");
   url.searchParams.set("language", "en");
@@ -46,7 +43,6 @@ async function fetchFromNewsApi(): Promise<RawArticle[]> {
     console.error("NewsAPI error", await res.text());
     return [];
   }
-
   const data = await res.json();
   return (data.articles || [])
     .filter((a: any) => a?.title && a?.url)
@@ -60,23 +56,16 @@ async function fetchFromNewsApi(): Promise<RawArticle[]> {
     }));
 }
 
-function uniqueByUrl(articles: RawArticle[]) {
-  const seen = new Set<string>();
-  return articles.filter((a) => {
-    if (!a.url || seen.has(a.url)) return false;
-    seen.add(a.url);
-    return true;
-  });
-}
-
 function diversify(articles: RawArticle[], limit = 12) {
-  const domains = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenDomains = new Set<string>();
   const out: RawArticle[] = [];
   for (const article of articles) {
     try {
       const domain = new URL(article.url).hostname.replace(/^www\./, "");
-      if (domains.has(domain)) continue;
-      domains.add(domain);
+      if (seenUrls.has(article.url) || seenDomains.has(domain)) continue;
+      seenUrls.add(article.url);
+      seenDomains.add(domain);
       out.push(article);
       if (out.length >= limit) break;
     } catch {
@@ -88,114 +77,109 @@ function diversify(articles: RawArticle[], limit = 12) {
 
 function defaultImagePrompt(article: RawArticle) {
   const section = categorizeText(`${article.title} ${article.description || ""}`);
-  return [
-    `Create a highly realistic AI-generated editorial image for a ${section.label} news story.`,
-    `Story context: ${article.title}.`,
-    `Use a photoreal, newspaper-feature style with believable lighting, rich environmental detail, strong composition and authentic U.S. visual cues when relevant.`,
-    `The image must be illustrative, not deceptive: do not present it as a real event photo, avoid logos, watermarks, fake network bugs, fake text overlays, or exact identifiable private people.`,
-    `The result should feel like a premium American news-site illustration that could sit on a homepage lead card.`
-  ].join(" ");
+  return `Create a highly realistic AI-generated editorial image for a ${section.label} news story. Story context: ${article.title}. Use a premium American digital-news photojournalism look: believable natural lighting, detailed setting, strong composition, realistic materials, cinematic but restrained. The image must be illustrative and must not pretend to be a real event photo. No logos, no watermarks, no readable text overlays, no fake press labels, no exact identifiable private people.`;
 }
 
-function articleToPost(article: RawArticle): NewsPost {
+function fallbackPost(article: RawArticle): NewsPost {
   const section = categorizeText(`${article.title} ${article.description || ""}`);
-  const slug = slugify(article.title);
+  const author = getAuthorForCategory(section.slug);
+  const title = article.title;
+  const summary = article.description || "Details were limited in the available source snapshot.";
+  const body = `${summary}\n\nThe American Desk is linking to the original source for more detail. This brief avoids adding unverified information beyond what was available in the source feed.`;
   return {
     id: hash(article.url),
-    slug,
-    title: article.title,
-    dek: article.description || "A quick look at one of the day’s important stories in the United States.",
-    summary: article.description || "Read the original source for more detail.",
-    body: article.description || "Further details were limited in the source snapshot available at publish time.",
+    slug: `${slugify(title)}-${hash(article.url).slice(0, 6)}`,
+    title,
+    dek: summary,
+    summary,
+    body,
     category: section.slug,
     subcategory: section.subcategories[0],
     region: "USA",
-    source_name: formatSourceName(article.sourceName),
+    author_name: author.name,
+    author_title: author.title,
+    reading_time: readingTimeFromText(body),
+    source_name: article.sourceName || "Source",
     source_url: article.url,
     image_prompt: defaultImagePrompt(article),
-    image_alt: `AI-generated editorial illustration for: ${article.title}`,
+    image_alt: `AI-generated editorial illustration for: ${title}`,
     image_url: null,
     published_at: article.publishedAt || new Date().toISOString()
   };
 }
 
-async function summarizeWithOpenAI(articles: RawArticle[]): Promise<NewsPost[]> {
-  const fallback = articles.map(articleToPost);
+async function buildCopy(articles: RawArticle[]): Promise<NewsPost[]> {
+  const fallback = articles.map(fallbackPost);
   if (!OPENAI_API_KEY || articles.length === 0) return fallback;
 
-  const articleBlock = articles.map((a, i) => (
-    `${i + 1}. TITLE: ${a.title}\nSOURCE: ${a.sourceName}\nURL: ${a.url}\nDESCRIPTION: ${a.description || ""}\nPUBLISHED: ${a.publishedAt || ""}`
-  )).join("\n\n");
+  const articleBlock = articles.map((a, i) => `${i + 1}. TITLE: ${a.title}\nSOURCE: ${a.sourceName}\nURL: ${a.url}\nDESCRIPTION: ${a.description || ""}\nPUBLISHED: ${a.publishedAt || ""}`).join("\n\n");
+  const prompt = `You are an editor for a serious American digital news site.
+Return strictly valid JSON. No markdown.
 
-  const prompt = `You are building structured copy for a premium American digital news site.
-Return strictly valid JSON with one object per article and no markdown.
+Use only the information in each article's title and description. Do not fabricate names, causes, dates, quotes, casualty counts, motives, locations, official statements or outcomes. If facts are limited, say that details remain limited in available reporting.
 
-Rules:
-- Use only the information contained in the title and description.
-- Do not fabricate facts, names, casualty counts, motives, causes, quotes or outcomes.
-- If information is limited, write in cautious language such as "officials have not released further details" or "details remained limited in available reporting".
-- Write in clear, natural American English.
-- For each article return: title, dek, summary, body, category, subcategory, image_prompt, image_alt.
-- body should be 2 to 4 short paragraphs separated by \n\n and should read like a concise web article.
-- summary should be 2 to 3 sentences.
-- dek should be one short sentence.
-- category must be one of: politics, national, world, business, technology, climate, health, style, opinion.
-- subcategory should plausibly fit the category.
-- image_prompt must ask for a highly realistic editorial illustration in a premium U.S. news-site style, but it must clearly remain illustrative and not pretend to be a real photo.
-- image_alt should clearly label the visual as an AI-generated editorial illustration.
+For each article, return exactly:
+{
+  "title": "clear headline",
+  "dek": "one sentence under the headline",
+  "summary": "2-3 sentence summary",
+  "body": "4-6 concise paragraphs separated by \\n\\n. Include: what is known, why it matters, what remains unclear, and a source/context paragraph. Do not invent facts.",
+  "category": "one of politics,national,world,business,technology,climate,health,style,opinion",
+  "subcategory": "specific subsection",
+  "image_prompt": "highly realistic but non-deceptive editorial AI image prompt",
+  "image_alt": "AI-generated editorial illustration of ..."
+}
+
+Image prompt rules:
+- Push realism and detail strongly: photoreal, premium U.S. news-site style, realistic lighting, believable environment.
+- Do not ask for a real event photo; the image must remain an illustrative reconstruction.
+- No logos, no text overlays, no fake screenshots, no fake press badges, no identifiable private people.
 
 Articles:\n${articleBlock}`;
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: OPENAI_TEXT_MODEL,
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: "You only respond with valid JSON." },
-        { role: "user", content: prompt }
-      ]
-    })
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: OPENAI_TEXT_MODEL, temperature: 0.25, messages: [{ role: "system", content: "You only output valid JSON." }, { role: "user", content: prompt }] })
   });
 
   if (!res.ok) {
     console.error("OpenAI text error", await res.text());
     return fallback;
   }
-
   const data = await res.json();
-  const content = data.choices?.[0]?.message?.content || "[]";
-
   try {
-    const parsed = JSON.parse(content);
-    return articles.map((article, index) => {
-      const ai = parsed[index] || {};
-      const baseSection = categorizeText(`${article.title} ${article.description || ""}`);
-      const category = ["politics", "national", "world", "business", "technology", "climate", "health", "style", "opinion"].includes(ai.category) ? ai.category : baseSection.slug;
+    const parsed = JSON.parse(data.choices?.[0]?.message?.content || "[]");
+    return articles.map((article, i) => {
+      const ai = parsed[i] || {};
+      const suggestedSection = categorizeText(`${article.title} ${article.description || ""}`);
+      const category = ["politics", "national", "world", "business", "technology", "climate", "health", "style", "opinion"].includes(ai.category) ? ai.category : suggestedSection.slug;
+      const author = getAuthorForCategory(category);
+      const title = safeText(ai.title) || article.title;
+      const body = safeBody(ai.body) || fallback[i].body;
       return {
         id: hash(article.url),
-        slug: slugify(ai.title || article.title),
-        title: safeText(ai.title) || article.title,
-        dek: safeText(ai.dek) || article.description || "A developing story in today’s U.S. news cycle.",
-        summary: safeText(ai.summary) || article.description || "Read the original source for more detail.",
-        body: safeText(ai.body?.replace(/\n\n/g, "\n\n")) || article.description || "Further details were limited in the available source snapshot.",
+        slug: `${slugify(title)}-${hash(article.url).slice(0, 6)}`,
+        title,
+        dek: safeText(ai.dek) || fallback[i].dek,
+        summary: safeText(ai.summary) || fallback[i].summary,
+        body,
         category,
-        subcategory: safeText(ai.subcategory) || baseSection.subcategories[0],
+        subcategory: safeText(ai.subcategory) || suggestedSection.subcategories[0],
         region: "USA",
-        source_name: formatSourceName(article.sourceName),
+        author_name: author.name,
+        author_title: author.title,
+        reading_time: readingTimeFromText(body),
+        source_name: article.sourceName || "Source",
         source_url: article.url,
         image_prompt: safeText(ai.image_prompt) || defaultImagePrompt(article),
-        image_alt: safeText(ai.image_alt) || `AI-generated editorial illustration for: ${article.title}`,
+        image_alt: safeText(ai.image_alt) || `AI-generated editorial illustration for: ${title}`,
         image_url: null,
         published_at: article.publishedAt || new Date().toISOString()
       };
     });
   } catch (error) {
-    console.error("JSON parse error", error);
+    console.error("OpenAI JSON parse error", error);
     return fallback;
   }
 }
@@ -203,19 +187,16 @@ Articles:\n${articleBlock}`;
 async function attachImages(posts: NewsPost[]): Promise<BuildDailyResult> {
   const imageErrors: BuildDailyResult["imageErrors"] = [];
   const results: NewsPost[] = [];
-
   for (const post of posts) {
     const image = await generateAndUploadImage({ postId: post.id, prompt: post.image_prompt });
     if (image.error) imageErrors.push({ id: post.id, title: post.title, error: image.error });
     results.push({ ...post, image_url: image.imageUrl });
   }
-
   return { posts: results, imageErrors };
 }
 
 export async function buildDailyPosts(): Promise<BuildDailyResult> {
-  const newsApi = await fetchFromNewsApi();
-  const articles = diversify(uniqueByUrl(newsApi), 12);
-  const posts = await summarizeWithOpenAI(articles);
+  const articles = diversify(await fetchFromNewsApi(), 12);
+  const posts = await buildCopy(articles);
   return attachImages(posts);
 }
