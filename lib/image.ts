@@ -15,19 +15,33 @@ export function getImageConfigStatus() {
   };
 }
 
-export async function generateAndUploadImage(opts: { postId: string; prompt: string }) {
+function enhancePrompt(prompt: string) {
+  return `${prompt}\n\nStyle requirements: photorealistic premium U.S. digital news-site editorial image, natural light, realistic camera perspective, nuanced textures, detailed environment, authentic human body proportions if people appear, no logos, no watermark, no fake news chyron, no readable text overlay, no identifiable private people, not a real event photograph. The website will label this as an AI-generated editorial visual.`;
+}
+
+export async function generateAndUploadImage(opts: { postId: string; prompt: string; }) {
   if (!GENERATE_IMAGES) return { imageUrl: null, error: "GENERATE_IMAGES is not set to true." };
   if (!OPENAI_API_KEY) return { imageUrl: null, error: "Missing OPENAI_API_KEY." };
+
   try {
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
-      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: OPENAI_IMAGE_MODEL, prompt: opts.prompt, size: "1024x1024" })
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: OPENAI_IMAGE_MODEL,
+        prompt: enhancePrompt(opts.prompt),
+        size: "1024x1024"
+      })
     });
+
     if (!res.ok) return { imageUrl: null, error: `OpenAI image error: ${await res.text()}` };
     const data = await res.json();
     const b64 = data.data?.[0]?.b64_json;
-    if (!b64) return { imageUrl: null, error: "No b64_json returned by image API." };
+    if (!b64) return { imageUrl: null, error: "No b64_json returned by the image API." };
+
     const imageUrl = await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
     if (!imageUrl) return { imageUrl: null, error: "Supabase Storage upload failed." };
     return { imageUrl, error: null };

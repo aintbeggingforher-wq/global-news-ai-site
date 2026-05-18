@@ -21,9 +21,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     created: result.posts.length,
-    images_created: result.posts.filter((post) => post.image_url).length,
+    images_created: result.posts.filter((p) => Boolean(p.image_url)).length,
+    videos_attached: result.posts.filter((p) => Boolean(p.video_embed_url)).length,
     image_config: getImageConfigStatus(),
     image_errors: result.imageErrors,
-    posts: result.posts.map((post) => ({ slug: post.slug, title: post.title, author: post.author_name, image_url: post.image_url, source_url: post.source_url }))
+    posts: result.posts.map((p) => ({ id: p.id, slug: p.slug, title: p.title, category: p.category, author: p.author_name, image_url: p.image_url, video_embed_url: p.video_embed_url }))
   });
 }

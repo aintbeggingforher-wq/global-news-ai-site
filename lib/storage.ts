@@ -3,13 +3,17 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "news-images";
 
 function assertSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
+  }
 }
 
-export async function uploadGeneratedImage(opts: { postId: string; base64Png: string }) {
+export async function uploadGeneratedImage(opts: { postId: string; base64Png: string; }) {
   assertSupabase();
+  const bytes = Buffer.from(opts.base64Png, "base64");
   const filePath = `daily/${opts.postId}.png`;
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
+
+  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY!,
@@ -17,11 +21,13 @@ export async function uploadGeneratedImage(opts: { postId: string; base64Png: st
       "Content-Type": "image/png",
       "x-upsert": "true"
     },
-    body: Buffer.from(opts.base64Png, "base64")
+    body: bytes
   });
-  if (!res.ok) {
-    console.error("Supabase storage upload error", await res.text());
+
+  if (!uploadRes.ok) {
+    console.error("Supabase storage upload error", await uploadRes.text());
     return null;
   }
+
   return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${filePath}`;
 }

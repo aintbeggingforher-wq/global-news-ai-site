@@ -16,6 +16,11 @@ create table if not exists posts (
   image_prompt text,
   image_url text,
   image_alt text,
+  video_url text,
+  video_embed_url text,
+  video_source_name text,
+  video_title text,
+  is_featured boolean default false,
   published_at timestamptz,
   created_at timestamptz default now()
 );
@@ -29,6 +34,11 @@ alter table posts add column if not exists author_name text default 'The America
 alter table posts add column if not exists author_title text default 'News Desk';
 alter table posts add column if not exists reading_time integer default 2;
 alter table posts add column if not exists image_alt text;
+alter table posts add column if not exists video_url text;
+alter table posts add column if not exists video_embed_url text;
+alter table posts add column if not exists video_source_name text;
+alter table posts add column if not exists video_title text;
+alter table posts add column if not exists is_featured boolean default false;
 
 update posts
 set
@@ -40,31 +50,27 @@ set
   author_name = coalesce(author_name, 'The American Desk Staff'),
   author_title = coalesce(author_title, 'News Desk'),
   reading_time = coalesce(reading_time, 2),
-  image_alt = coalesce(image_alt, 'AI-generated editorial illustration for: ' || title);
+  image_alt = coalesce(image_alt, 'AI-generated editorial illustration for: ' || title),
+  is_featured = coalesce(is_featured, false);
 
 create unique index if not exists posts_slug_unique_idx on posts (slug);
 create index if not exists posts_published_at_idx on posts (published_at desc);
 create index if not exists posts_category_idx on posts (category, published_at desc);
-create index if not exists posts_slug_idx on posts (slug);
+create index if not exists posts_featured_idx on posts (is_featured, published_at desc);
 
 insert into posts (
   id, slug, title, dek, summary, body, category, subcategory, region,
   author_name, author_title, reading_time,
-  source_name, source_url, image_prompt, image_url, image_alt, published_at
+  source_name, source_url, image_prompt, image_url, image_alt,
+  video_url, video_embed_url, video_source_name, video_title, is_featured, published_at
 )
 values (
   'manual-texas-warehouse-fire-001',
   'texas-warehouse-fire-investigated-as-suspected-arson',
   'Texas Warehouse Fire Investigated as Suspected Arson',
-  'Authorities say a major warehouse blaze in Texas is being treated as a possible criminal fire while investigators review the scene.',
-  'A large Texas warehouse fire is being investigated as suspected arson after early indicators raised concerns that the blaze may have been intentionally set. Fire crews worked for hours to contain flames and heavy smoke while officials secured the surrounding area.',
-  'A large warehouse fire in Texas is being investigated as a possible act of arson after authorities said early indicators at the scene raised concerns about a criminal cause. Officials have not announced a final determination, and investigators are continuing to review the evidence.
-
-Fire crews spent hours battling flames and heavy smoke while emergency teams worked to secure the surrounding area. Officials said the first priority was to keep the fire from spreading, protect nearby properties and make the site safe enough for investigators to begin their work.
-
-Investigators are expected to examine burn patterns, entry points, surveillance footage if available and witness accounts. Those details can help officials determine whether the fire started accidentally or was deliberately set.
-
-The full extent of the damage has not been confirmed in the limited information available for this report. The case remains under investigation, and the source link should be replaced with a verified local report or official statement before this is treated as a fully sourced live article.',
+  'Authorities say a major Texas warehouse blaze is being treated as a possible criminal fire while investigators work through the scene.',
+  'A large Texas warehouse fire is under investigation as suspected arson after early indicators raised concerns that the blaze may have been intentionally set. Fire crews worked for hours to contain flames and heavy smoke while officials secured the surrounding area.',
+  'A large warehouse fire in Texas is being investigated as a possible act of arson after authorities said early indicators at the scene raised concerns about a criminal cause. Officials have not announced a final determination, and investigators are continuing to review available evidence.\n\nFire crews spent hours battling flames and heavy smoke while emergency teams worked to secure the surrounding area. Officials said the first priority was to keep the fire from spreading, protect nearby properties and make the site safe enough for investigators to begin their work.\n\nInvestigators are expected to examine burn patterns, entry points, surveillance footage if available and witness accounts. Those details can help officials determine whether the fire started accidentally or was deliberately set.\n\nThe full extent of the damage has not been confirmed in the limited information available for this report. The case remains under investigation, and the source link should be replaced with a verified local report or official statement before this is treated as a fully sourced live article.',
   'national',
   'Public Safety',
   'USA',
@@ -73,9 +79,14 @@ The full extent of the damage has not been confirmed in the limited information 
   3,
   'Local authorities / local news',
   'https://global-news-ai-site.vercel.app',
-  'Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, clearly illustrative and not an actual event photograph.',
+  'Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and thick smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe operational distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, not an actual event photograph.',
   'https://hiltoufaggrbfxvlwano.supabase.co/storage/v1/object/public/news-images/ChatGPT%20Image%20May%2017,%202026%20at%2010_21_41%20PM.png',
   'AI-generated editorial illustration of firefighters responding to a warehouse fire in Texas.',
+  null,
+  null,
+  null,
+  null,
+  true,
   now()
 )
 on conflict (id) do update set
@@ -95,4 +106,9 @@ on conflict (id) do update set
   image_prompt = excluded.image_prompt,
   image_url = excluded.image_url,
   image_alt = excluded.image_alt,
+  video_url = excluded.video_url,
+  video_embed_url = excluded.video_embed_url,
+  video_source_name = excluded.video_source_name,
+  video_title = excluded.video_title,
+  is_featured = excluded.is_featured,
   published_at = excluded.published_at;

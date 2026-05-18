@@ -4,7 +4,7 @@ export type RawArticle = {
   url: string;
   sourceName?: string | null;
   publishedAt?: string | null;
-  region?: string | null;
+  requestedCategory?: string | null;
 };
 
 export type NewsPost = {
@@ -25,6 +25,11 @@ export type NewsPost = {
   image_prompt: string;
   image_url?: string | null;
   image_alt?: string | null;
+  video_url?: string | null;
+  video_embed_url?: string | null;
+  video_source_name?: string | null;
+  video_title?: string | null;
+  is_featured?: boolean;
   published_at: string;
   created_at?: string;
 };
@@ -35,4 +40,13 @@ export type SectionConfig = {
   description: string;
   subcategories: string[];
   keywords: string[];
+  newsApiCategory?: string;
+  query?: string;
+};
+
+export type AuthorProfile = {
+  name: string;
+  title: string;
+  initials: string;
+  beat: string;
 };

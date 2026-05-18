@@ -1,55 +1,80 @@
 import Link from "next/link";
-import { getDisplayPosts } from "@/lib/db";
-import { postsBySection } from "@/lib/categories";
-import { formatShortDate } from "@/lib/format";
-import { SiteHeader } from "@/components/SiteHeader";
-import { StoryImage } from "@/components/StoryImage";
+import { getPosts } from "@/lib/db";
+import { getAuthorForCategory } from "@/lib/authors";
+import { PRIMARY_NAV, postsBySection } from "@/lib/categories";
+import { formatLongDate, formatShortDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function Header() {
+  return (
+    <>
+      <div className="topbar">
+        <span>{formatLongDate()}</span>
+        <span>U.S. Edition</span>
+      </div>
+      <div className="brandblock">
+        <Link className="brand" href="/">The American Desk</Link>
+        <div className="tagline">Sharp daily coverage across politics, national news, business, technology, health, sports and culture.</div>
+      </div>
+      <nav className="nav" aria-label="Primary navigation">
+        {PRIMARY_NAV.map((item) => <Link href={`/${item.slug}`} key={item.slug}>{item.label}</Link>)}
+      </nav>
+    </>
+  );
+}
+
+function StoryImage({ src, alt }: { src?: string | null; alt: string }) {
+  if (!src) return <div className="placeholder">Image pending</div>;
+  return <img className="story-image" src={src} alt={alt} />;
+}
+
+function Byline({ category, name, title }: { category: string; name: string; title: string }) {
+  const author = getAuthorForCategory(category);
+  return <div className="author"><span className="avatar">{author.initials}</span><span>By <strong>{name}</strong><br /><small>{title}</small></span></div>;
+}
+
 export default async function HomePage() {
-  const posts = await getDisplayPosts(30);
-  const lead = posts[0];
-  const latest = posts.slice(1, 7);
-  const briefs = posts.slice(7, 11);
-  const rail = posts.slice(11, 15);
-  const sections = postsBySection(posts).filter((group) => group.posts.length > 0).slice(0, 6);
+  const posts = await getPosts(48);
+  const withImages = posts.filter((p) => p.image_url);
+  const sorted = [...withImages, ...posts.filter((p) => !p.image_url)];
+  const lead = sorted[0];
+  const latest = sorted.slice(1, 7);
+  const briefs = sorted.slice(7, 13);
+  const rail = sorted.slice(13, 18);
+  const sectionGroups = postsBySection(sorted).filter((g) => g.posts.length > 0).slice(0, 8);
 
   return (
     <main className="page">
       <div className="shell">
-        <SiteHeader />
+        <Header />
         {posts.length === 0 ? (
           <section className="empty">
             <h1>No stories published yet.</h1>
-            <p>Run <code>/api/cron/daily</code> after your Vercel environment variables are configured.</p>
+            <p>Run <code>/api/cron/daily</code> after your environment variables are configured.</p>
           </section>
         ) : (
           <>
             <section className="hero">
-              {lead && (
-                <article className="hero-main">
-                  <StoryImage src={lead.image_url} alt={lead.image_alt || lead.title} />
-                  <div className="copy">
-                    <div className="hero-meta"><span className="section-kicker">{lead.category}</span><span>{formatShortDate(lead.published_at)}</span></div>
-                    <Link href={`/story/${lead.slug}`}><h1>{lead.title}</h1></Link>
-                    <p>{lead.dek}</p>
-                    <div className="hero-meta"><span>By {lead.author_name}</span><span>{lead.reading_time} min read</span></div>
-                    <p className="note">Image: AI-generated editorial visual, not an actual event photograph.</p>
-                  </div>
-                </article>
-              )}
-              <aside className="hero-rail">
-                <div className="section-title"><h2>What to know</h2><span>Daily briefing</span></div>
-                {rail.map((post) => (
-                  <article key={post.id} className="rail-card">
-                    <div className="kicker-row"><span>{post.subcategory}</span><span>{formatShortDate(post.published_at)}</span></div>
-                    <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
-                    <p>{post.summary}</p>
-                    <p className="note">By {post.author_name}</p>
-                  </article>
-                ))}
+              {lead && <article className="hero-main">
+                <StoryImage src={lead.image_url} alt={lead.image_alt || lead.title} />
+                <div className="copy">
+                  <div className="meta"><span className="pill">{lead.category}</span><span>{formatShortDate(lead.published_at)}</span><span>{lead.reading_time} min read</span></div>
+                  <Link href={`/story/${lead.slug}`}><h1>{lead.title}</h1></Link>
+                  <p>{lead.dek}</p>
+                  <Byline category={lead.category} name={lead.author_name} title={lead.author_title} />
+                  <p className="note">AI-generated editorial visual, not an actual event photograph. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
+                </div>
+              </article>}
+              <aside className="rail">
+                <div className="section-title"><h2>What to know</h2><span>Editors’ picks</span></div>
+                {rail.map((post) => <article className="rail-card" key={post.id}>
+                  <div className="kicker-row"><span>{post.category}</span><span>{post.subcategory}</span></div>
+                  <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
+                  <p>{post.summary}</p>
+                  <p className="note">By {post.author_name} · {post.reading_time} min read</p>
+                </article>)}
               </aside>
             </section>
 
@@ -57,49 +82,43 @@ export default async function HomePage() {
               <div>
                 <div className="section-title"><h2>Latest</h2><span>Updated daily</span></div>
                 <div className="latest-grid">
-                  {latest.map((post) => (
-                    <article key={post.id} className="story-card">
-                      <StoryImage src={post.image_url} alt={post.image_alt || post.title} />
-                      <div className="copy">
-                        <div className="kicker-row"><Link href={`/${post.category}`} className="pill">{post.category}</Link><span>{formatShortDate(post.published_at)}</span></div>
-                        <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
-                        <p>{post.dek}</p>
-                        <p className="note">By {post.author_name} · {post.reading_time} min read</p>
-                      </div>
-                    </article>
-                  ))}
+                  {latest.map((post) => <article className="story-card" key={post.id}>
+                    <StoryImage src={post.image_url} alt={post.image_alt || post.title} />
+                    <div className="copy">
+                      <div className="kicker-row"><Link href={`/${post.category}`}>{post.category}</Link><span>{formatShortDate(post.published_at)}</span></div>
+                      <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
+                      <p>{post.dek}</p>
+                      <p className="note">By {post.author_name}</p>
+                    </div>
+                  </article>)}
                 </div>
               </div>
               <div>
                 <div className="section-title"><h2>News Briefs</h2><span>Fast context</span></div>
                 <div className="briefs">
-                  {briefs.map((post) => (
-                    <article key={post.id} className="brief-card">
-                      <div className="kicker-row"><span>{post.subcategory}</span><span>{formatShortDate(post.published_at)}</span></div>
-                      <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
-                      <p>{post.summary}</p>
-                      <p className="note">Source: <a className="source-link" href={post.source_url} target="_blank" rel="noreferrer">{post.source_name}</a></p>
-                    </article>
-                  ))}
+                  {briefs.map((post) => <article className="brief-card" key={post.id}>
+                    <div className="kicker-row"><span>{post.subcategory}</span><span>{formatShortDate(post.published_at)}</span></div>
+                    <Link href={`/story/${post.slug}`}><h3>{post.title}</h3></Link>
+                    <p>{post.summary}</p>
+                    <p className="note">By {post.author_name} · Source: <a className="source-link" href={post.source_url} target="_blank" rel="noreferrer">{post.source_name}</a></p>
+                  </article>)}
                 </div>
               </div>
             </section>
 
             <section>
-              <div className="section-title"><h2>Sections</h2><span>Browse by newsroom desk</span></div>
+              <div className="section-title"><h2>Sections</h2><span>Browse the newsroom</span></div>
               <div className="section-grid">
-                {sections.map(({ section, posts }) => (
-                  <Link href={`/${section.slug}`} className="section-card" key={section.slug}>
-                    <div className="section-kicker">{section.label}</div>
-                    <strong>{posts[0]?.title}</strong>
-                    <p>{section.description}</p>
-                  </Link>
-                ))}
+                {sectionGroups.map(({ section, posts }) => <Link className="section-card" href={`/${section.slug}`} key={section.slug}>
+                  <div className="section-kicker">{section.label}</div>
+                  <strong>{posts[0]?.title}</strong>
+                  <p>{section.description}</p>
+                </Link>)}
               </div>
             </section>
           </>
         )}
-        <footer className="footer">The American Desk publishes sourced summaries with clearly labeled AI-generated editorial visuals. Images are illustrative and are not presented as real event photographs.</footer>
+        <footer className="footer">The American Desk publishes sourced summaries with AI-generated editorial visuals. Images are illustrative and are not presented as real event photographs. Videos are embedded only when an official embeddable source URL is available.</footer>
       </div>
     </main>
   );
