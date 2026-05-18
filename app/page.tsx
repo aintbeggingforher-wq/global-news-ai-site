@@ -16,23 +16,31 @@ export default async function HomePage() {
   return (
     <main className="page">
       <div className="container">
+        <header className="site-header">
+          <div className="brand-mark">TDE</div>
+          <div>
+            <div className="brand-name">The Daily Edit</div>
+            <div className="brand-subtitle">Smart news, softer delivery.</div>
+          </div>
+        </header>
+
         <section className="hero">
-          <div className="kicker">USA Daily News</div>
-          <h1>America’s biggest stories, summarized fast.</h1>
+          <div className="kicker">Daily U.S. News</div>
+          <h1>America’s biggest stories, edited for real life.</h1>
           <p className="subtitle">
-            A daily automated brief covering major U.S. headlines, short summaries, original sources, and clearly labeled AI illustrations.
+            A calm, clear daily brief covering major U.S. headlines, quick context, original sources, and editorial visuals that make the story easier to understand.
           </p>
           <div className="meta-bar">
             <span className="pill">Updated daily</span>
-            <span className="pill">U.S. headlines</span>
+            <span className="pill">Easy to read</span>
             <span className="pill">Sourced summaries</span>
-            <span className="pill">AI illustrations</span>
+            <span className="pill">Editorial visuals</span>
           </div>
         </section>
 
         {posts.length === 0 ? (
           <div className="empty">
-            No posts yet. Run the cron route:
+            No stories yet. Run the daily update:
             <br />
             <code>GET /api/cron/daily</code>
           </div>
@@ -42,9 +50,9 @@ export default async function HomePage() {
               <article className="card" key={post.id}>
                 <div className="cover">
                   {post.image_url ? (
-                    <img src={post.image_url} alt={`AI illustration for ${post.title}`} />
+                    <img src={post.image_url} alt={`Editorial visual for ${post.title}`} />
                   ) : (
-                    <span className="cover-label">AI Illustration</span>
+                    <span className="cover-label">Editorial Visual</span>
                   )}
                 </div>
                 <div className="card-body">
@@ -52,10 +60,10 @@ export default async function HomePage() {
                   <h2>{post.title}</h2>
                   <p className="summary">{post.summary}</p>
                   <a className="source" href={post.source_url} target="_blank" rel="noreferrer">
-                    Source: {post.source_name || "Read original story"}
+                    Read the original source: {post.source_name || "Source"}
                   </a>
                   <p className="ai-note">
-                    Visual: editorial AI illustration, not presented as a real photo of the event.
+                    Visual note: editorial AI-assisted illustration, not a real event photo.
                   </p>
                 </div>
               </article>
@@ -64,7 +72,7 @@ export default async function HomePage() {
         )}
 
         <footer className="footer">
-          © {new Date().getFullYear()} USA Daily Brief — short summaries with links to original sources.
+          © {new Date().getFullYear()} The Daily Edit — simple summaries with links to original reporting.
         </footer>
       </div>
     </main>
