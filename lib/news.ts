@@ -1,9 +1,11 @@
 import crypto from "crypto";
 import type { NewsPost, RawArticle } from "./types";
+import { uploadGeneratedImage } from "./storage";
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
+const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const GENERATE_IMAGES = process.env.GENERATE_IMAGES === "true";
 
 function hash(input: string) {
@@ -92,8 +94,14 @@ async function summarizeWithOpenAI(articles: RawArticle[]): Promise<NewsPost[]> 
   if (!OPENAI_API_KEY) return fallback;
 
   const articleBlock = articles.map((a, i) => (
-    `${i + 1}. TITLE: ${a.title}\nSOURCE: ${a.sourceName}\nURL: ${a.url}\nDESC: ${a.description || ""}\nPUBLISHED: ${a.publishedAt || ""}`
-  )).join("\n\n");
+    `${i + 1}. TITLE: ${a.title}
+SOURCE: ${a.sourceName}
+URL: ${a.url}
+DESC: ${a.description || ""}
+PUBLISHED: ${a.publishedAt || ""}`
+  )).join("
+
+");
 
   const prompt = `
 You are an editor for a U.S. daily news website.
@@ -105,8 +113,10 @@ Rules:
 - Never invent facts that are not present in the title or description.
 - Summarize each story in 1 to 2 short sentences.
 - Keep the tone clear, modern, and slightly viral, but serious.
-- Generate an editorial/conceptual AI image prompt.
+- Generate an editorial/conceptual AI image prompt for each story.
+- The image prompt must fit the article and should produce a strong news-style illustration.
 - The image prompt must not create a fake realistic photo of a real event.
+- Prefer editorial illustration, cinematic concept art, or magazine-style breaking-news visuals.
 - Return exactly this format:
 [
   {
@@ -168,7 +178,7 @@ ${articleBlock}
 }
 
 function defaultImagePrompt(article: RawArticle) {
-  return `Editorial conceptual AI illustration for a U.S. news story: "${article.title}". Magazine-style composition, symbolic and clearly illustrative, not a fake real-world event photo, no news outlet logos, dramatic lighting, high quality.`;
+  return `Editorial conceptual AI illustration for a U.S. news story: "${article.title}". Strong magazine-style breaking-news composition, symbolic and clearly illustrative, not a fake real-world event photo, no news outlet logos, dramatic lighting, high quality.`;
 }
 
 function articleToPost(article: RawArticle): NewsPost {
@@ -185,7 +195,7 @@ function articleToPost(article: RawArticle): NewsPost {
   };
 }
 
-async function generateImageDataUrl(prompt: string): Promise<string | null> {
+async function generateImageBase64(prompt: string): Promise<string | null> {
   if (!GENERATE_IMAGES || !OPENAI_API_KEY) return null;
 
   const res = await fetch("https://api.openai.com/v1/images/generations", {
@@ -195,7 +205,7 @@ async function generateImageDataUrl(prompt: string): Promise<string | null> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
+      model: OPENAI_IMAGE_MODEL,
       prompt,
       size: "1024x1024"
     }),
@@ -207,10 +217,31 @@ async function generateImageDataUrl(prompt: string): Promise<string | null> {
   }
 
   const data = await res.json();
-  const b64 = data.data?.[0]?.b64_json;
-  if (!b64) return null;
+  return data.data?.[0]?.b64_json || null;
+}
 
-  return `data:image/png;base64,${b64}`;
+async function attachImages(posts: NewsPost[]): Promise<NewsPost[]> {
+  const results: NewsPost[] = [];
+
+  for (const post of posts) {
+    const base64 = await generateImageBase64(post.image_prompt);
+    if (!base64) {
+      results.push(post);
+      continue;
+    }
+
+    const publicUrl = await uploadGeneratedImage({
+      postId: post.id,
+      base64Png: base64,
+    });
+
+    results.push({
+      ...post,
+      image_url: publicUrl,
+    });
+  }
+
+  return results;
 }
 
 export async function buildDailyPosts(): Promise<NewsPost[]> {
@@ -220,11 +251,5 @@ export async function buildDailyPosts(): Promise<NewsPost[]> {
   const articles = pickDiverseArticles([...apiArticles, ...gdeltArticles], 6);
   const posts = await summarizeWithOpenAI(articles);
 
-  const enriched: NewsPost[] = [];
-  for (const post of posts) {
-    const imageUrl = await generateImageDataUrl(post.image_prompt);
-    enriched.push({ ...post, image_url: imageUrl });
-  }
-
-  return enriched;
+  return attachImages(posts);
 }
