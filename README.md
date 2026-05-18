@@ -127,3 +127,22 @@ curl -sS -X GET "https://your-site.vercel.app/api/cron/daily" \
 ```
 
 Visible image language uses subtle newsroom wording such as "Photo illustration" instead of loud AI labels. Sponsored blocks are labeled as Advertisement or Sponsored.
+
+## V5 Higgsfield API Fix
+
+This build uses the official Higgsfield client behavior:
+- base URL: `https://platform.higgsfield.ai`
+- auth header: `Authorization: Key <HF_KEY>`
+- model endpoint path: `/bytedance/seedream/v4/text-to-image`
+
+Test images:
+```bash
+curl -sS -X GET "https://your-site.vercel.app/api/debug/higgsfield" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+Test NewsAPI:
+```bash
+curl -sS -X GET "https://your-site.vercel.app/api/debug/news" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
