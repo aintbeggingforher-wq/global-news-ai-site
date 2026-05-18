@@ -13,13 +13,13 @@ export async function getPosts(): Promise<NewsPost[]> {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
 
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/posts?select=*&order=published_at.desc&limit=30`,
+    `${SUPABASE_URL}/rest/v1/posts?select=*&order=published_at.desc&limit=20`,
     {
       headers: {
         apikey: SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       },
-      next: { revalidate: 300 },
+      cache: "no-store",
     }
   );
 

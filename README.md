@@ -1,30 +1,8 @@
-# USA Daily Brief + Automatic AI Images
+# USA Daily Brief + Automatic AI Images + Debug
 
-Automated website for daily U.S. news briefs with short summaries, original sources, and daily AI-generated editorial images that are uploaded automatically to Supabase Storage.
+Automated website for daily U.S. news briefs with short summaries, original sources, and daily AI-generated editorial images uploaded automatically to Supabase Storage.
 
-## What it does
-
-- `GET /api/cron/daily` fetches U.S.-focused news.
-- The system stores posts in Supabase.
-- The homepage displays the latest U.S. news.
-- If OpenAI is connected, summaries are rewritten in natural American English.
-- If `GENERATE_IMAGES=true`, the cron generates one AI image per post.
-- Generated images are uploaded automatically to the public Supabase Storage bucket.
-- AI images are treated as editorial illustrations, not real event photos.
-
-## Required setup
-
-### 1) Supabase table
-Run the SQL in `supabase/schema.sql`.
-
-### 2) Supabase Storage bucket
-Create a public bucket named:
-
-```bash
-news-images
-```
-
-### 3) Environment variables
+## Required Vercel environment variables
 
 ```bash
 SUPABASE_URL=
@@ -40,10 +18,67 @@ OPENAI_IMAGE_MODEL=gpt-image-1
 GENERATE_IMAGES=true
 ```
 
-## Test the cron
+## Supabase Storage
+
+Create a public bucket named:
 
 ```bash
-curl -X GET https://your-site.vercel.app/api/cron/daily   -H "Authorization: Bearer YOUR_CRON_SECRET"
+news-images
 ```
 
-If everything is configured correctly, each daily run will create posts and attach matching AI illustrations automatically.
+## Test image generation only
+
+```bash
+curl -X GET https://your-site.vercel.app/api/debug/image \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+Expected success:
+
+```json
+{
+  "ok": true,
+  "image_url": "https://..."
+}
+```
+
+If there is an OpenAI or Supabase error, the response will show it.
+
+## Run daily cron
+
+```bash
+curl -X GET https://your-site.vercel.app/api/cron/daily \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+The response now returns:
+
+```json
+{
+  "created": 6,
+  "images_created": 6,
+  "image_errors": []
+}
+```
+
+
+## Fix for Vercel oversized ISR page
+
+The homepage is forced dynamic with:
+
+```ts
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+```
+
+This prevents Vercel from trying to pre-render a very large page when old rows contain base64 images.
+
+Recommended cleanup in Supabase SQL Editor:
+
+```sql
+delete from posts
+where image_url like 'data:%'
+   or length(coalesce(image_url, '')) > 1000;
+```
+
+After cleanup, run the cron again so new images are uploaded as public Supabase Storage URLs instead of being stored as huge base64 strings.

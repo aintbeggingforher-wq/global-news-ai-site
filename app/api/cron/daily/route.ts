@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildDailyPosts } from "@/lib/news";
 import { insertPosts } from "@/lib/db";
+import { getImageConfigStatus } from "@/lib/image";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function isAuthorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -19,12 +21,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const posts = await buildDailyPosts();
-  await insertPosts(posts);
+  const result = await buildDailyPosts();
+  await insertPosts(result.posts);
+
+  const postsWithImages = result.posts.filter((p) => Boolean(p.image_url)).length;
 
   return NextResponse.json({
     ok: true,
-    created: posts.length,
-    posts: posts.map((p) => ({ id: p.id, title: p.title, source: p.source_url })),
+    created: result.posts.length,
+    images_created: postsWithImages,
+    image_config: getImageConfigStatus(),
+    image_errors: result.imageErrors,
+    posts: result.posts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      source: p.source_url,
+      image_url: p.image_url,
+    })),
   });
 }

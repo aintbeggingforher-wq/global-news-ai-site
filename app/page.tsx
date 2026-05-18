@@ -1,5 +1,8 @@
 import { getPosts } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function formatDate(input?: string | null) {
   if (!input) return "Today";
   return new Intl.DateTimeFormat("en-US", {

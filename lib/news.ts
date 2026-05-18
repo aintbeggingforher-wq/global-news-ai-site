@@ -1,12 +1,15 @@
 import crypto from "crypto";
 import type { NewsPost, RawArticle } from "./types";
-import { uploadGeneratedImage } from "./storage";
+import { generateAndUploadImage } from "./image";
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
-const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
-const GENERATE_IMAGES = process.env.GENERATE_IMAGES === "true";
+
+export type BuildDailyResult = {
+  posts: NewsPost[];
+  imageErrors: Array<{ id: string; title: string; error: string }>;
+};
 
 function hash(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex").slice(0, 24);
@@ -94,14 +97,8 @@ async function summarizeWithOpenAI(articles: RawArticle[]): Promise<NewsPost[]> 
   if (!OPENAI_API_KEY) return fallback;
 
   const articleBlock = articles.map((a, i) => (
-    `${i + 1}. TITLE: ${a.title}
-SOURCE: ${a.sourceName}
-URL: ${a.url}
-DESC: ${a.description || ""}
-PUBLISHED: ${a.publishedAt || ""}`
-  )).join("
-
-");
+    `${i + 1}. TITLE: ${a.title}\nSOURCE: ${a.sourceName}\nURL: ${a.url}\nDESC: ${a.description || ""}\nPUBLISHED: ${a.publishedAt || ""}`
+  )).join("\n\n");
 
   const prompt = `
 You are an editor for a U.S. daily news website.
@@ -195,56 +192,30 @@ function articleToPost(article: RawArticle): NewsPost {
   };
 }
 
-async function generateImageBase64(prompt: string): Promise<string | null> {
-  if (!GENERATE_IMAGES || !OPENAI_API_KEY) return null;
-
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENAI_IMAGE_MODEL,
-      prompt,
-      size: "1024x1024"
-    }),
-  });
-
-  if (!res.ok) {
-    console.error("OpenAI image error", await res.text());
-    return null;
-  }
-
-  const data = await res.json();
-  return data.data?.[0]?.b64_json || null;
-}
-
-async function attachImages(posts: NewsPost[]): Promise<NewsPost[]> {
+async function attachImages(posts: NewsPost[]): Promise<BuildDailyResult> {
   const results: NewsPost[] = [];
+  const imageErrors: BuildDailyResult["imageErrors"] = [];
 
   for (const post of posts) {
-    const base64 = await generateImageBase64(post.image_prompt);
-    if (!base64) {
-      results.push(post);
-      continue;
-    }
-
-    const publicUrl = await uploadGeneratedImage({
+    const image = await generateAndUploadImage({
       postId: post.id,
-      base64Png: base64,
+      prompt: post.image_prompt,
     });
+
+    if (image.error) {
+      imageErrors.push({ id: post.id, title: post.title, error: image.error });
+    }
 
     results.push({
       ...post,
-      image_url: publicUrl,
+      image_url: image.imageUrl,
     });
   }
 
-  return results;
+  return { posts: results, imageErrors };
 }
 
-export async function buildDailyPosts(): Promise<NewsPost[]> {
+export async function buildDailyPosts(): Promise<BuildDailyResult> {
   const apiArticles = await fetchFromNewsApi();
   const gdeltArticles = apiArticles.length ? [] : await fetchFromGdelt();
 
