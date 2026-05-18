@@ -10,6 +10,8 @@ create table if not exists posts (
   region text default 'USA',
   author_name text default 'The American Desk Staff',
   author_title text default 'News Desk',
+  author_avatar_url text,
+  author_photo_note text,
   reading_time integer default 2,
   source_name text,
   source_url text not null,
@@ -32,6 +34,8 @@ alter table posts add column if not exists category text default 'national';
 alter table posts add column if not exists subcategory text default 'General';
 alter table posts add column if not exists author_name text default 'The American Desk Staff';
 alter table posts add column if not exists author_title text default 'News Desk';
+alter table posts add column if not exists author_avatar_url text;
+alter table posts add column if not exists author_photo_note text;
 alter table posts add column if not exists reading_time integer default 2;
 alter table posts add column if not exists image_alt text;
 alter table posts add column if not exists video_url text;
@@ -60,7 +64,7 @@ create index if not exists posts_featured_idx on posts (is_featured, published_a
 
 insert into posts (
   id, slug, title, dek, summary, body, category, subcategory, region,
-  author_name, author_title, reading_time,
+  author_name, author_title, author_avatar_url, author_photo_note, reading_time,
   source_name, source_url, image_prompt, image_url, image_alt,
   video_url, video_embed_url, video_source_name, video_title, is_featured, published_at
 )
@@ -76,6 +80,8 @@ values (
   'USA',
   'Daniel Reyes',
   'National Affairs Reporter',
+  'https://hiltoufaggrbfxvlwano.supabase.co/storage/v1/object/public/news-images/authors/daniel-reyes.png',
+  'AI-generated fictional newsroom portrait.',
   3,
   'Local authorities / local news',
   'https://global-news-ai-site.vercel.app',
@@ -100,6 +106,8 @@ on conflict (id) do update set
   region = excluded.region,
   author_name = excluded.author_name,
   author_title = excluded.author_title,
+  author_avatar_url = excluded.author_avatar_url,
+  author_photo_note = excluded.author_photo_note,
   reading_time = excluded.reading_time,
   source_name = excluded.source_name,
   source_url = excluded.source_url,

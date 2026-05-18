@@ -1,4 +1,4 @@
-import { uploadGeneratedImage } from "./storage";
+import { uploadPngToStorage } from "./storage";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
@@ -15,13 +15,9 @@ export function getImageConfigStatus() {
   };
 }
 
-function enhancePrompt(prompt: string) {
-  return `${prompt}\n\nStyle requirements: photorealistic premium U.S. digital news-site editorial image, natural light, realistic camera perspective, nuanced textures, detailed environment, authentic human body proportions if people appear, no logos, no watermark, no fake news chyron, no readable text overlay, no identifiable private people, not a real event photograph. The website will label this as an AI-generated editorial visual.`;
-}
-
-export async function generateAndUploadImage(opts: { postId: string; prompt: string; }) {
-  if (!GENERATE_IMAGES) return { imageUrl: null, error: "GENERATE_IMAGES is not set to true." };
-  if (!OPENAI_API_KEY) return { imageUrl: null, error: "Missing OPENAI_API_KEY." };
+async function generateBase64(prompt: string) {
+  if (!GENERATE_IMAGES) return { b64: null, error: "GENERATE_IMAGES is not set to true." };
+  if (!OPENAI_API_KEY) return { b64: null, error: "Missing OPENAI_API_KEY." };
 
   try {
     const res = await fetch("https://api.openai.com/v1/images/generations", {
@@ -32,20 +28,26 @@ export async function generateAndUploadImage(opts: { postId: string; prompt: str
       },
       body: JSON.stringify({
         model: OPENAI_IMAGE_MODEL,
-        prompt: enhancePrompt(opts.prompt),
+        prompt,
         size: "1024x1024"
       })
     });
 
-    if (!res.ok) return { imageUrl: null, error: `OpenAI image error: ${await res.text()}` };
+    if (!res.ok) return { b64: null, error: `OpenAI image error: ${await res.text()}` };
     const data = await res.json();
-    const b64 = data.data?.[0]?.b64_json;
-    if (!b64) return { imageUrl: null, error: "No b64_json returned by the image API." };
-
-    const imageUrl = await uploadGeneratedImage({ postId: opts.postId, base64Png: b64 });
-    if (!imageUrl) return { imageUrl: null, error: "Supabase Storage upload failed." };
-    return { imageUrl, error: null };
+    const b64 = data.data?.[0]?.b64_json || null;
+    if (!b64) return { b64: null, error: "No b64_json returned by the image API." };
+    return { b64, error: null };
   } catch (error: any) {
-    return { imageUrl: null, error: error?.message || "Unknown image generation error." };
+    return { b64: null, error: error?.message || "Unknown image generation error." };
   }
+}
+
+export async function generateAndUploadImage(opts: { postId: string; prompt: string; path?: string; }) {
+  const generated = await generateBase64(opts.prompt);
+  if (!generated.b64) return { imageUrl: null, error: generated.error };
+  const path = opts.path || `daily/${opts.postId}.png`;
+  const imageUrl = await uploadPngToStorage({ path, base64Png: generated.b64 });
+  if (!imageUrl) return { imageUrl: null, error: "Supabase Storage upload failed." };
+  return { imageUrl, error: null };
 }

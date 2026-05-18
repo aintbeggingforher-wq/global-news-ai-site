@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 function StoryImage({ src, alt }: { src?: string | null; alt: string }) {
-  if (!src) return <div className="placeholder">Image pending</div>;
+  if (!src) return <div className="placeholder"><span>Editorial image pending</span></div>;
   return <img className="story-image" src={src} alt={alt} />;
 }
 

@@ -5,6 +5,7 @@ export type RawArticle = {
   sourceName?: string | null;
   publishedAt?: string | null;
   requestedCategory?: string | null;
+  sourceImageUrl?: string | null;
 };
 
 export type NewsPost = {
@@ -19,6 +20,8 @@ export type NewsPost = {
   region: string;
   author_name: string;
   author_title: string;
+  author_avatar_url?: string | null;
+  author_photo_note?: string | null;
   reading_time: number;
   source_name: string;
   source_url: string;
@@ -49,4 +52,7 @@ export type AuthorProfile = {
   title: string;
   initials: string;
   beat: string;
+  photoEligible?: boolean;
+  portraitPrompt?: string;
+  avatarPath?: string;
 };

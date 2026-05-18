@@ -26,13 +26,18 @@ function Header() {
 }
 
 function StoryImage({ src, alt }: { src?: string | null; alt: string }) {
-  if (!src) return <div className="placeholder">Image pending</div>;
+  if (!src) return <div className="placeholder"><span>Editorial image pending</span></div>;
   return <img className="story-image" src={src} alt={alt} />;
 }
 
-function Byline({ category, name, title }: { category: string; name: string; title: string }) {
+function Byline({ category, name, title, avatarUrl, note }: { category: string; name: string; title: string; avatarUrl?: string | null; note?: string | null }) {
   const author = getAuthorForCategory(category);
-  return <div className="author"><span className="avatar">{author.initials}</span><span>By <strong>{name}</strong><br /><small>{title}</small></span></div>;
+  return (
+    <div className="author">
+      {avatarUrl ? <img className="avatar avatar-img" src={avatarUrl} alt={`Editorial portrait for ${name}`} /> : <span className="avatar">{author.initials}</span>}
+      <span>By <strong>{name}</strong><br /><small>{title}</small>{note ? <><br /><small className="avatar-note">{note}</small></> : null}</span>
+    </div>
+  );
 }
 
 export default async function HomePage() {
@@ -63,7 +68,7 @@ export default async function HomePage() {
                   <div className="meta"><span className="pill">{lead.category}</span><span>{formatShortDate(lead.published_at)}</span><span>{lead.reading_time} min read</span></div>
                   <Link href={`/story/${lead.slug}`}><h1>{lead.title}</h1></Link>
                   <p>{lead.dek}</p>
-                  <Byline category={lead.category} name={lead.author_name} title={lead.author_title} />
+                  <Byline category={lead.category} name={lead.author_name} title={lead.author_title} avatarUrl={lead.author_avatar_url} note={lead.author_photo_note} />
                   <p className="note">AI-generated editorial visual, not an actual event photograph. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
                 </div>
               </article>}

@@ -8,12 +8,16 @@ function assertSupabase() {
   }
 }
 
-export async function uploadGeneratedImage(opts: { postId: string; base64Png: string; }) {
+export function getPublicStorageUrl(path: string) {
+  if (!SUPABASE_URL) return null;
+  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${path}`;
+}
+
+export async function uploadPngToStorage(opts: { path: string; base64Png: string; }) {
   assertSupabase();
   const bytes = Buffer.from(opts.base64Png, "base64");
-  const filePath = `daily/${opts.postId}.png`;
 
-  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
+  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${opts.path}`, {
     method: "POST",
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY!,
@@ -29,5 +33,9 @@ export async function uploadGeneratedImage(opts: { postId: string; base64Png: st
     return null;
   }
 
-  return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_STORAGE_BUCKET}/${filePath}`;
+  return getPublicStorageUrl(opts.path);
+}
+
+export async function uploadGeneratedImage(opts: { postId: string; base64Png: string; }) {
+  return uploadPngToStorage({ path: `daily/${opts.postId}.png`, base64Png: opts.base64Png });
 }

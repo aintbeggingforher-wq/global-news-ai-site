@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { insertPosts } from "@/lib/db";
 import { generateAndUploadImage } from "@/lib/image";
 import type { NewsPost } from "@/lib/types";
+import { getAuthorForCategory, getPublicAuthorAvatarUrl } from "@/lib/authors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,6 +17,7 @@ function isAuthorized(req: NextRequest) {
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const author = getAuthorForCategory("national");
   const imagePrompt = "Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and thick smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe operational distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, not an actual event photograph.";
   const image = await generateAndUploadImage({ postId: "manual-texas-warehouse-fire-001", prompt: imagePrompt });
 
@@ -31,6 +33,8 @@ export async function GET(req: NextRequest) {
     region: "USA",
     author_name: "Daniel Reyes",
     author_title: "National Affairs Reporter",
+    author_avatar_url: getPublicAuthorAvatarUrl(author),
+    author_photo_note: "AI-generated fictional newsroom portrait.",
     reading_time: 3,
     source_name: "Local authorities / local news",
     source_url: "https://global-news-ai-site.vercel.app",
