@@ -9,7 +9,7 @@ const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
 const POSTS_PER_SECTION = Math.max(1, Number(process.env.POSTS_PER_SECTION || "1"));
-const MAX_DAILY_POSTS = Number(process.env.MAX_DAILY_POSTS || 3);
+const MAX_DAILY_POSTS = Number(process.env.MAX_DAILY_POSTS || 2);
 const IMAGE_GENERATION_LIMIT = Number(process.env.IMAGE_GENERATION_LIMIT || 2);
 
 export type BuildDailyResult = {
@@ -129,7 +129,7 @@ async function fetchDailyArticles(): Promise<RawArticle[]> {
 function defaultImagePrompt(article: RawArticle, category: string) {
   const section = getSectionBySlug(category) || categorizeText(`${article.title} ${article.description || ""}`);
   return [
-    `Create a highly realistic AI-generated editorial news visual for a ${section.label} story.`,
+    `Create a highly realistic editorial news visual for a ${section.label} story.`,
     `Story context: ${article.title}.`,
     `Use premium U.S. digital-news photojournalism aesthetics: realistic light, believable location, sharp detail, natural camera perspective, serious editorial tone.`,
     `Do not include logos, watermarks, text overlays, fake lower-thirds, identifiable private people or anything claiming to be a real event photograph.`,
@@ -165,7 +165,7 @@ function buildPostFromArticle(article: RawArticle, ai: any = {}): NewsPost {
     source_url: article.url,
     image_prompt: safeText(ai.image_prompt) || defaultImagePrompt(article, category),
     image_url: null,
-    image_alt: safeText(ai.image_alt) || `AI-generated editorial visual for ${article.title}`,
+    image_alt: safeText(ai.image_alt) || `photo illustration for ${article.title}`,
     video_url: null,
     video_embed_url: null,
     video_source_name: null,
@@ -201,7 +201,7 @@ Editorial rules:
 - dek is one strong sentence under the headline.
 - summary is 2 to 3 sentences.
 - image_prompt must request a photorealistic, high-detail editorial AI visual, but must not pretend to be an actual event photo.
-- image_alt must explicitly mention AI-generated editorial visual.
+- image_alt must explicitly mention photo illustration.
 
 Return JSON format:
 [

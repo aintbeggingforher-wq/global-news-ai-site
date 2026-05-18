@@ -83,3 +83,47 @@ To fill missing images in small batches:
 curl -sS -X GET "https://your-site.vercel.app/api/maintenance/fill-images?limit=2" \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
+
+
+# V5 Newsroom Realism — Higgsfield
+
+Set in Vercel:
+
+```env
+IMAGE_PROVIDER=higgsfield
+HF_KEY=your-api-key:your-api-secret
+```
+
+or:
+
+```env
+IMAGE_PROVIDER=higgsfield
+HF_API_KEY=your-api-key
+HF_API_SECRET=your-api-secret
+```
+
+Recommended:
+
+```env
+MAX_DAILY_POSTS=2
+IMAGE_GENERATION_LIMIT=2
+VIDEO_PROBABILITY=0.35
+ENABLE_AD_SLOTS=true
+AD_SLOT_FREQUENCY=24
+```
+
+Test Higgsfield:
+
+```bash
+curl -sS -X GET "https://your-site.vercel.app/api/debug/higgsfield" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+Publish two daily posts:
+
+```bash
+curl -sS -X GET "https://your-site.vercel.app/api/cron/daily" \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
+```
+
+Visible image language uses subtle newsroom wording such as "Photo illustration" instead of loud AI labels. Sponsored blocks are labeled as Advertisement or Sponsored.

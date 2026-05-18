@@ -69,7 +69,7 @@ export default async function HomePage() {
                   <Link href={`/story/${lead.slug}`}><h1>{lead.title}</h1></Link>
                   <p>{lead.dek}</p>
                   <Byline category={lead.category} name={lead.author_name} title={lead.author_title} avatarUrl={lead.author_avatar_url} note={lead.author_photo_note} />
-                  <p className="note">AI-generated editorial visual, not an actual event photograph. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
+                  <p className="note">Photo illustration, not an actual event photograph. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
                 </div>
               </article>}
               <aside className="rail">
@@ -123,7 +123,7 @@ export default async function HomePage() {
             </section>
           </>
         )}
-        <footer className="footer">The American Desk publishes sourced summaries with AI-generated editorial visuals. Images are illustrative and are not presented as real event photographs. Videos are embedded only when an official embeddable source URL is available.</footer>
+        <footer className="footer">The American Desk publishes sourced summaries with Photo illustrations. Images are illustrative and are not presented as real event photographs. Videos are embedded only when an official embeddable source URL is available.</footer>
       </div>
     </main>
   );

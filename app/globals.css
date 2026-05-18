@@ -83,3 +83,10 @@ img { max-width: 100%; display: block; }
 @media (max-width: 720px) { .page { padding-inline:14px; } .nav { overflow-x:auto; flex-wrap:nowrap; } .brand { font-size:38px; } .latest-grid, .section-grid, .briefs { grid-template-columns:1fr; } .hero-main p, .article-dek { font-size:18px; } .article-body p { font-size:18px; } }
 
 .image-debug { color: var(--soft); font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size: 12px; }
+
+
+.sponsored-slot { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(246,240,233,.9)); padding: 18px; margin: 22px 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.sponsored-slot .eyebrow { color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; margin-bottom: 8px; }
+.sponsored-slot strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 22px; line-height: 1.1; margin-bottom: 8px; }
+.sponsored-slot p { margin: 0 0 10px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.sponsored-slot .cta { color: var(--accent); font-weight: 700; font-size: 13px; }
