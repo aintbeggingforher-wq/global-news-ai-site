@@ -1,9 +1,9 @@
-import "./globals.css";
 import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "The American Desk",
-  description: "A clean digital daily briefing for major U.S. stories, organized by politics, national news, world, business, tech, climate, health and culture.",
+  title: process.env.SITE_NAME || "The American Desk",
+  description: process.env.SITE_TAGLINE || "Sharp coverage of the day in America"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

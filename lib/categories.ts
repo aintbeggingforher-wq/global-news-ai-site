@@ -1,97 +1,86 @@
-import type { NewsPost } from "./types";
+import type { NewsPost, SectionConfig } from "./types";
 
-export type Category = {
-  slug: string;
-  label: string;
-  description: string;
-  keywords: string[];
-};
-
-export const CATEGORIES: Category[] = [
+export const SECTIONS: SectionConfig[] = [
   {
     slug: "politics",
     label: "Politics",
-    description: "Washington, campaigns, Congress, the White House and power in America.",
-    keywords: ["trump", "biden", "white house", "senate", "congress", "republican", "democrat", "election", "campaign", "governor", "supreme court", "justice department", "lawmakers"],
+    description: "The White House, Congress, campaigns, courts and power in America.",
+    subcategories: ["White House", "Congress", "Campaigns", "Courts", "Policy"],
+    keywords: ["trump", "biden", "white house", "senate", "congress", "election", "campaign", "governor", "policy", "supreme court", "justice department"]
   },
   {
     slug: "national",
     label: "National",
-    description: "The biggest stories across the United States.",
-    keywords: ["u.s.", "us ", "america", "american", "state", "police", "court", "school", "shooting", "fire", "texas", "california", "florida", "new york"],
+    description: "Big stories from across the United States.",
+    subcategories: ["Public Safety", "Education", "Law", "Society", "States"],
+    keywords: ["u.s.", "america", "american", "texas", "california", "florida", "new york", "police", "court", "school", "fire", "storm"]
   },
   {
     slug: "world",
     label: "World",
-    description: "Global stories with clear U.S. relevance.",
-    keywords: ["ukraine", "russia", "china", "israel", "gaza", "iran", "india", "europe", "mexico", "canada", "nato", "war", "foreign"],
+    description: "Major global developments with U.S. relevance.",
+    subcategories: ["Europe", "Middle East", "Asia", "Americas", "Africa"],
+    keywords: ["ukraine", "russia", "china", "iran", "israel", "gaza", "india", "europe", "middle east", "nato", "foreign"]
   },
   {
     slug: "business",
     label: "Business",
-    description: "Markets, companies, work, money and the economy.",
-    keywords: ["market", "stocks", "wall street", "economy", "jobs", "inflation", "company", "business", "fed", "rates", "tariff", "earnings", "bank"],
+    description: "Markets, companies, inflation, jobs and the economy.",
+    subcategories: ["Markets", "Economy", "Companies", "Labor", "Personal Finance"],
+    keywords: ["market", "stocks", "economy", "jobs", "inflation", "tariff", "company", "business", "earnings", "fed", "rates", "bank"]
   },
   {
     slug: "technology",
-    label: "Technology",
-    description: "Tech, AI, platforms, cybersecurity and the digital economy.",
-    keywords: ["ai", "artificial intelligence", "google", "apple", "meta", "microsoft", "cyber", "technology", "tech", "software", "chip", "robot", "data"],
+    label: "Tech",
+    description: "Technology, AI, the internet, cybersecurity and devices.",
+    subcategories: ["Artificial Intelligence", "Internet Culture", "Tech Policy", "Cybersecurity", "Startups"],
+    keywords: ["ai", "artificial intelligence", "google", "apple", "meta", "microsoft", "technology", "tech", "software", "chip", "cyber"]
   },
   {
     slug: "climate",
     label: "Climate",
-    description: "Climate, environment, energy and extreme weather.",
-    keywords: ["climate", "storm", "hurricane", "weather", "flood", "wildfire", "heat", "energy", "environment", "tornado", "severe storms"],
+    description: "Climate, weather, energy and the environment.",
+    subcategories: ["Weather", "Energy", "Environment", "Climate Policy", "Extreme Events"],
+    keywords: ["climate", "weather", "energy", "environment", "heat", "flood", "wildfire", "storm", "hurricane", "tornado"]
   },
   {
     slug: "health",
     label: "Health",
-    description: "Health, medicine, science and public well-being.",
-    keywords: ["health", "virus", "disease", "hospital", "doctor", "medical", "cdc", "vaccine", "outbreak", "science", "wellness", "hantavirus"],
+    description: "Health, medicine, science and well-being.",
+    subcategories: ["Public Health", "Medicine", "Science", "Research", "Wellness"],
+    keywords: ["health", "virus", "disease", "hospital", "doctor", "medical", "cdc", "outbreak", "science", "vaccine", "wellness"]
   },
   {
     slug: "style",
     label: "Style",
-    description: "Culture, media, celebrity, entertainment and American life.",
-    keywords: ["style", "culture", "movie", "music", "celebrity", "fashion", "hollywood", "sports", "nfl", "nba", "ufc", "restaurant", "travel", "food"],
+    description: "Culture, media, entertainment and how America lives now.",
+    subcategories: ["Culture", "Media", "Entertainment", "Fashion", "Food & Travel"],
+    keywords: ["culture", "movie", "music", "celebrity", "fashion", "hollywood", "media", "restaurant", "travel", "food", "lifestyle"]
   },
   {
     slug: "opinion",
     label: "Opinion",
-    description: "Analysis, argument and perspective.",
-    keywords: ["opinion", "analysis", "column", "editorial", "debate", "argues", "essay"],
-  },
+    description: "Perspective, argument and analysis.",
+    subcategories: ["Columns", "Editorials", "Analysis"],
+    keywords: ["opinion", "analysis", "column", "editorial", "perspective", "argues"]
+  }
 ];
 
-export const PRIMARY_NAV = [
-  CATEGORIES[0],
-  CATEGORIES[1],
-  CATEGORIES[2],
-  CATEGORIES[3],
-  CATEGORIES[4],
-  CATEGORIES[5],
-  CATEGORIES[6],
-  CATEGORIES[7],
-];
+export const PRIMARY_NAV = SECTIONS.map((s) => ({ slug: s.slug, label: s.label }));
 
-export function getCategoryBySlug(slug: string) {
-  return CATEGORIES.find((category) => category.slug === slug);
+export function getSectionBySlug(slug: string) {
+  return SECTIONS.find((section) => section.slug === slug);
 }
 
-export function categorizePost(post: NewsPost): Category {
-  const haystack = `${post.title} ${post.summary} ${post.source_name}`.toLowerCase();
-
-  let best = CATEGORIES[1];
+export function categorizeText(text: string) {
+  const haystack = text.toLowerCase();
+  let best = SECTIONS[1];
   let bestScore = 0;
 
-  for (const category of CATEGORIES) {
-    const score = category.keywords.reduce((total, keyword) => {
-      return haystack.includes(keyword.toLowerCase()) ? total + 1 : total;
-    }, 0);
-
+  for (const section of SECTIONS) {
+    const score = section.keywords.reduce((acc, keyword) => acc + (haystack.includes(keyword.toLowerCase()) ? 1 : 0), 0);
     if (score > bestScore) {
-      best = category;
+      best = section;
       bestScore = score;
     }
   }
@@ -99,9 +88,14 @@ export function categorizePost(post: NewsPost): Category {
   return best;
 }
 
-export function getFeaturedByCategory(posts: NewsPost[]) {
-  return CATEGORIES.map((category) => ({
-    category,
-    posts: posts.filter((post) => categorizePost(post).slug === category.slug),
+export function ensureCategory(post: NewsPost) {
+  if (post.category && getSectionBySlug(post.category)) return post.category;
+  return categorizeText(`${post.title} ${post.summary} ${post.source_name}`).slug;
+}
+
+export function postsBySection(posts: NewsPost[]) {
+  return SECTIONS.map((section) => ({
+    section,
+    posts: posts.filter((post) => ensureCategory(post) === section.slug)
   }));
 }

@@ -8,28 +8,21 @@ function assertSupabase() {
   }
 }
 
-export async function uploadGeneratedImage(opts: {
-  postId: string;
-  base64Png: string;
-}): Promise<string | null> {
+export async function uploadGeneratedImage(opts: { postId: string; base64Png: string; }) {
   assertSupabase();
-
   const bytes = Buffer.from(opts.base64Png, "base64");
   const filePath = `daily/${opts.postId}.png`;
 
-  const uploadRes = await fetch(
-    `${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`,
-    {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY!,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "image/png",
-        "x-upsert": "true",
-      },
-      body: bytes,
-    }
-  );
+  const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_STORAGE_BUCKET}/${filePath}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY!,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "image/png",
+      "x-upsert": "true"
+    },
+    body: bytes
+  });
 
   if (!uploadRes.ok) {
     console.error("Supabase storage upload error", await uploadRes.text());

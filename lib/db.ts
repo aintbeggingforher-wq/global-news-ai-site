@@ -9,45 +9,53 @@ function assertSupabase() {
   }
 }
 
-export async function getPosts(): Promise<NewsPost[]> {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
-
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/posts?select=*&order=published_at.desc&limit=20`,
-    {
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    console.error("Supabase read error", await res.text());
-    return [];
-  }
-
-  return res.json();
-}
-
-export async function insertPosts(posts: NewsPost[]) {
+async function restFetch(path: string, init?: RequestInit) {
   assertSupabase();
-
-  if (posts.length === 0) return;
-
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/posts`, {
-    method: "POST",
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY!,
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "resolution=merge-duplicates",
+      ...(init?.headers || {})
     },
-    body: JSON.stringify(posts),
+    cache: "no-store"
   });
 
   if (!res.ok) {
-    throw new Error(`Supabase insert error: ${await res.text()}`);
+    throw new Error(`Supabase error on ${path}: ${await res.text()}`);
   }
+
+  return res;
+}
+
+export async function getPosts(limit = 30): Promise<NewsPost[]> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
+  const res = await restFetch(`posts?select=*&order=published_at.desc&limit=${limit}`);
+  return res.json();
+}
+
+export async function getPostsByCategory(category: string, limit = 20): Promise<NewsPost[]> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
+  const query = `posts?select=*&category=eq.${encodeURIComponent(category)}&order=published_at.desc&limit=${limit}`;
+  const res = await restFetch(query);
+  return res.json();
+}
+
+export async function getPostBySlug(slug: string): Promise<NewsPost | null> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+  const res = await restFetch(`posts?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`);
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
+export async function insertPosts(posts: NewsPost[]) {
+  if (posts.length === 0) return;
+  await restFetch("posts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates"
+    },
+    body: JSON.stringify(posts)
+  });
 }

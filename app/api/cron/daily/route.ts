@@ -9,10 +9,8 @@ export const runtime = "nodejs";
 function isAuthorized(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return false;
-
   const auth = req.headers.get("authorization");
   const vercelCron = req.headers.get("x-vercel-cron");
-
   return auth === `Bearer ${secret}` || vercelCron === "1";
 }
 
@@ -24,19 +22,12 @@ export async function GET(req: NextRequest) {
   const result = await buildDailyPosts();
   await insertPosts(result.posts);
 
-  const postsWithImages = result.posts.filter((p) => Boolean(p.image_url)).length;
-
   return NextResponse.json({
     ok: true,
     created: result.posts.length,
-    images_created: postsWithImages,
+    images_created: result.posts.filter((p) => Boolean(p.image_url)).length,
     image_config: getImageConfigStatus(),
     image_errors: result.imageErrors,
-    posts: result.posts.map((p) => ({
-      id: p.id,
-      title: p.title,
-      source: p.source_url,
-      image_url: p.image_url,
-    })),
+    posts: result.posts.map((p) => ({ id: p.id, slug: p.slug, title: p.title, image_url: p.image_url, source_url: p.source_url }))
   });
 }
