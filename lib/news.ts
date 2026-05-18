@@ -114,7 +114,7 @@ async function fetchDailyArticles(): Promise<RawArticle[]> {
   // Round-robin keeps the site populated across categories instead of filling only Politics/National.
   for (let round = 0; round < POSTS_PER_SECTION; round++) {
     for (const batch of batches) {
-      const article = batch.articles.find((candidate) => !seen.has(candidate.url));
+      const article = batch.articles.find((candidate: RawArticle) => !seen.has(candidate.url));
       if (!article) continue;
       seen.add(article.url);
       out.push(article);
