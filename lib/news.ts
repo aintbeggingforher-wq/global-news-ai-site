@@ -6,15 +6,6 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-4o-mini";
 const GENERATE_IMAGES = process.env.GENERATE_IMAGES === "true";
 
-const TOPICS = [
-  "world",
-  "business",
-  "technology",
-  "science",
-  "health",
-  "general"
-];
-
 function hash(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex").slice(0, 24);
 }
@@ -27,6 +18,7 @@ async function fetchFromNewsApi(): Promise<RawArticle[]> {
   if (!NEWS_API_KEY) return [];
 
   const url = new URL("https://newsapi.org/v2/top-headlines");
+  url.searchParams.set("country", "us");
   url.searchParams.set("language", "en");
   url.searchParams.set("pageSize", "40");
   url.searchParams.set("apiKey", NEWS_API_KEY);
@@ -46,12 +38,14 @@ async function fetchFromNewsApi(): Promise<RawArticle[]> {
       url: a.url,
       sourceName: a.source?.name || "News source",
       publishedAt: a.publishedAt,
-      region: "Monde",
+      region: "USA",
     }));
 }
 
 async function fetchFromGdelt(): Promise<RawArticle[]> {
-  const query = encodeURIComponent("(world OR politics OR economy OR technology OR climate OR health) sourcelang:english");
+  const query = encodeURIComponent(
+    '(United States OR America OR US politics OR White House OR Congress OR "New York" OR California OR Texas OR Florida) sourcelang:english'
+  );
   const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${query}&mode=ArtList&format=json&maxrecords=40&sort=datedesc`;
 
   const res = await fetch(url, { cache: "no-store" });
@@ -65,11 +59,11 @@ async function fetchFromGdelt(): Promise<RawArticle[]> {
     .filter((a: any) => a?.title && a?.url)
     .map((a: any) => ({
       title: safeText(a.title),
-      description: safeText(a.seendate ? `Article détecté par GDELT le ${a.seendate}.` : ""),
+      description: safeText(a.seendate ? `Detected by GDELT on ${a.seendate}.` : ""),
       url: a.url,
       sourceName: a.domain || "News source",
       publishedAt: a.seendate || new Date().toISOString(),
-      region: "Monde",
+      region: "USA",
     }));
 }
 
@@ -102,22 +96,23 @@ async function summarizeWithOpenAI(articles: RawArticle[]): Promise<NewsPost[]> 
   )).join("\n\n");
 
   const prompt = `
-Tu es rédacteur d'un site de daily news mondial en français.
-À partir des articles ci-dessous, crée un JSON strictement valide, sans markdown.
+You are an editor for a U.S. daily news website.
+Based only on the articles below, create strictly valid JSON. Do not use markdown.
 
-Règles:
-- Ne fabrique jamais de fait absent du titre/description.
-- Résume chaque news en 1 à 2 phrases simples.
-- N'écris pas comme un robot.
-- Garde un ton média moderne, clair, légèrement viral mais sérieux.
-- Génère un prompt d'image IA éditoriale/conceptuelle.
-- L'image prompt ne doit pas créer une fausse photo réaliste d'un événement précis.
-- Retourne exactement ce format:
+Rules:
+- Write everything in natural American English.
+- Focus on U.S. relevance.
+- Never invent facts that are not present in the title or description.
+- Summarize each story in 1 to 2 short sentences.
+- Keep the tone clear, modern, and slightly viral, but serious.
+- Generate an editorial/conceptual AI image prompt.
+- The image prompt must not create a fake realistic photo of a real event.
+- Return exactly this format:
 [
   {
     "title": "...",
     "summary": "...",
-    "region": "Monde",
+    "region": "USA",
     "image_prompt": "..."
   }
 ]
@@ -136,7 +131,7 @@ ${articleBlock}
       model: OPENAI_TEXT_MODEL,
       temperature: 0.4,
       messages: [
-        { role: "system", content: "Tu réponds uniquement avec du JSON valide." },
+        { role: "system", content: "You only respond with valid JSON." },
         { role: "user", content: prompt },
       ],
     }),
@@ -158,7 +153,7 @@ ${articleBlock}
         id: hash(article.url),
         title: safeText(ai.title) || article.title,
         summary: safeText(ai.summary) || safeText(article.description) || article.title,
-        region: safeText(ai.region) || article.region || "Monde",
+        region: "USA",
         source_name: article.sourceName || "Source",
         source_url: article.url,
         image_prompt: safeText(ai.image_prompt) || defaultImagePrompt(article),
@@ -173,15 +168,15 @@ ${articleBlock}
 }
 
 function defaultImagePrompt(article: RawArticle) {
-  return `Illustration IA éditoriale conceptuelle pour une actualité mondiale: "${article.title}". Style photographie de magazine mais clairement symbolique, pas de fausse scène réelle, pas de logos de médias, composition dramatique, haute qualité.`;
+  return `Editorial conceptual AI illustration for a U.S. news story: "${article.title}". Magazine-style composition, symbolic and clearly illustrative, not a fake real-world event photo, no news outlet logos, dramatic lighting, high quality.`;
 }
 
 function articleToPost(article: RawArticle): NewsPost {
   return {
     id: hash(article.url),
     title: article.title,
-    summary: safeText(article.description) || "Résumé indisponible. Consulte la source originale pour plus de détails.",
-    region: article.region || "Monde",
+    summary: safeText(article.description) || "Summary unavailable. Read the original source for more details.",
+    region: "USA",
     source_name: article.sourceName || "Source",
     source_url: article.url,
     image_prompt: defaultImagePrompt(article),

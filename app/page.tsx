@@ -1,8 +1,8 @@
 import { getPosts } from "@/lib/db";
 
 function formatDate(input?: string | null) {
-  if (!input) return "Aujourd'hui";
-  return new Intl.DateTimeFormat("fr-FR", {
+  if (!input) return "Today";
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
   }).format(new Date(input));
 }
@@ -14,21 +14,22 @@ export default async function HomePage() {
     <main className="page">
       <div className="container">
         <section className="hero">
-          <div className="kicker">Daily World News</div>
-          <h1>Les news mondiales, résumées sans bruit.</h1>
+          <div className="kicker">USA Daily News</div>
+          <h1>America’s biggest stories, summarized fast.</h1>
           <p className="subtitle">
-            Un brief quotidien automatisé : actualités importantes, résumé court, source originale et illustration IA clairement indiquée.
+            A daily automated brief covering major U.S. headlines, short summaries, original sources, and clearly labeled AI illustrations.
           </p>
           <div className="meta-bar">
-            <span className="pill">Mise à jour quotidienne</span>
-            <span className="pill">Résumés sourcés</span>
-            <span className="pill">Illustrations IA</span>
+            <span className="pill">Updated daily</span>
+            <span className="pill">U.S. headlines</span>
+            <span className="pill">Sourced summaries</span>
+            <span className="pill">AI illustrations</span>
           </div>
         </section>
 
         {posts.length === 0 ? (
           <div className="empty">
-            Aucun post pour l’instant. Lance la route cron :
+            No posts yet. Run the cron route:
             <br />
             <code>GET /api/cron/daily</code>
           </div>
@@ -38,20 +39,20 @@ export default async function HomePage() {
               <article className="card" key={post.id}>
                 <div className="cover">
                   {post.image_url ? (
-                    <img src={post.image_url} alt={`Illustration IA pour ${post.title}`} />
+                    <img src={post.image_url} alt={`AI illustration for ${post.title}`} />
                   ) : (
-                    <span className="cover-label">Illustration IA</span>
+                    <span className="cover-label">AI Illustration</span>
                   )}
                 </div>
                 <div className="card-body">
-                  <div className="kicker">{post.region || "Monde"} · {formatDate(post.published_at)}</div>
+                  <div className="kicker">{post.region || "USA"} · {formatDate(post.published_at)}</div>
                   <h2>{post.title}</h2>
                   <p className="summary">{post.summary}</p>
                   <a className="source" href={post.source_url} target="_blank" rel="noreferrer">
-                    Source : {post.source_name || "Lire l’article original"}
+                    Source: {post.source_name || "Read original story"}
                   </a>
                   <p className="ai-note">
-                    Visuel : illustration IA éditoriale, non présentée comme une vraie photo de l’événement.
+                    Visual: editorial AI illustration, not presented as a real photo of the event.
                   </p>
                 </div>
               </article>
@@ -60,7 +61,7 @@ export default async function HomePage() {
         )}
 
         <footer className="footer">
-          © {new Date().getFullYear()} Global Daily Brief — résumés courts et liens vers les sources originales.
+          © {new Date().getFullYear()} USA Daily Brief — short summaries with links to original sources.
         </footer>
       </div>
     </main>
