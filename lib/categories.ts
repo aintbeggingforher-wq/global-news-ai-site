@@ -99,3 +99,25 @@ export function postsBySection(posts: NewsPost[]) {
     posts: posts.filter((post) => ensureCategory(post) === section.slug)
   }));
 }
+
+// Compatibility exports for older static category pages that may still exist
+// in GitHub after uploading files through the GitHub web UI.
+// They can be removed once old folders like app/world, app/politics, etc.
+// are deleted from the repository.
+export const CATEGORIES = SECTIONS;
+
+export function getCategoryBySlug(slug: string) {
+  return getSectionBySlug(slug);
+}
+
+export function categorizePost(post: NewsPost) {
+  return getSectionBySlug(ensureCategory(post)) || SECTIONS[1];
+}
+
+export function getFeaturedByCategory(posts: NewsPost[]) {
+  return SECTIONS.map((category) => ({
+    category,
+    posts: posts.filter((post) => ensureCategory(post) === category.slug)
+  }));
+}
+
