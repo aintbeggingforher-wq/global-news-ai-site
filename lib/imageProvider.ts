@@ -133,14 +133,11 @@ async function generateWithHiggsfield(opts: { postId: string; prompt: string; pa
       method: "POST",
       headers: higgsfieldHeaders(),
       body: JSON.stringify({
-        input: {
-          prompt: opts.prompt,
-          aspect_ratio: process.env.HIGGSFIELD_ASPECT_RATIO || "16:9",
-          safety_tolerance: Number(process.env.HIGGSFIELD_SAFETY_TOLERANCE || 2),
-          seed: Math.floor(Math.random() * 1000000),
-        },
-      }),
-    });
+  prompt: opts.prompt,
+  aspect_ratio: process.env.HIGGSFIELD_ASPECT_RATIO || "16:9",
+  safety_tolerance: Number(process.env.HIGGSFIELD_SAFETY_TOLERANCE || 2),
+  seed: Math.floor(Math.random() * 1000000),
+}),
 
     const responseText = await res.text();
     let data: any = null;
