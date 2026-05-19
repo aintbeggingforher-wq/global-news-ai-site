@@ -689,14 +689,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    await supabaseFetch("posts?on_conflict=id", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify(post),
-    });
+const { video_target, ...dbPost } = post;
+
+await supabaseFetch("posts?on_conflict=id", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Prefer: "resolution=merge-duplicates,return=minimal",
+  },
+  body: JSON.stringify(dbPost),
+});
   }
 
   const counts = selected.reduce((acc: Record<string, number>, post) => {
