@@ -54,8 +54,9 @@ set
   author_name = coalesce(author_name, 'The American Desk Staff'),
   author_title = coalesce(author_title, 'News Desk'),
   reading_time = coalesce(reading_time, 2),
-  image_alt = coalesce(image_alt, 'AI-generated editorial illustration for: ' || title),
-  is_featured = coalesce(is_featured, false);
+  image_alt = coalesce(image_alt, 'Editorial photo illustration for: ' || title),
+  is_featured = coalesce(is_featured, false),
+  author_photo_note = null;
 
 create unique index if not exists posts_slug_unique_idx on posts (slug);
 create index if not exists posts_published_at_idx on posts (published_at desc);
@@ -81,13 +82,13 @@ values (
   'Daniel Reyes',
   'National Affairs Reporter',
   'https://hiltoufaggrbfxvlwano.supabase.co/storage/v1/object/public/news-images/authors/daniel-reyes.png',
-  'AI-generated fictional newsroom portrait.',
+  null,
   3,
   'Local authorities / local news',
   'https://global-news-ai-site.vercel.app',
-  'Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and thick smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe operational distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, not an actual event photograph.',
-  'https://hiltoufaggrbfxvlwano.supabase.co/storage/v1/object/public/news-images/ChatGPT%20Image%20May%2017,%202026%20at%2010_21_41%20PM.png',
-  'AI-generated editorial illustration of firefighters responding to a warehouse fire in Texas.',
+  'Ultra-realistic editorial photo illustration of a Texas warehouse fire from a safe news-camera distance: flames only coming from the industrial building roofline/loading bays, thick smoke, firefighters and emergency vehicles outside the fire perimeter, wet pavement, police tape, realistic smoke and light physics, no people inside flames, no giant fireball, no text or logos.',
+  null,
+  'Editorial photo illustration of firefighters responding from a safe distance to a warehouse fire in Texas.',
   null,
   null,
   null,
@@ -107,7 +108,7 @@ on conflict (id) do update set
   author_name = excluded.author_name,
   author_title = excluded.author_title,
   author_avatar_url = excluded.author_avatar_url,
-  author_photo_note = excluded.author_photo_note,
+  author_photo_note = null,
   reading_time = excluded.reading_time,
   source_name = excluded.source_name,
   source_url = excluded.source_url,

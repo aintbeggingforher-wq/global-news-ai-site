@@ -1,6 +1,5 @@
 import type { AuthorProfile } from "./types";
-
-const AUTHOR_BASE_PROMPT = "Create a realistic AI-generated editorial staff portrait for a fictional digital newsroom. Neutral studio background, natural light, professional but approachable expression, documentary headshot style, no logos, no text, no real person likeness, no celebrity likeness.";
+import { buildAuthorPortraitPrompt } from "./editorialPrompts";
 
 export const AUTHORS: Record<string, AuthorProfile> = {
   politics: {
@@ -10,7 +9,7 @@ export const AUTHORS: Record<string, AuthorProfile> = {
     beat: "The White House, Congress and campaigns",
     photoEligible: true,
     avatarPath: "authors/olivia-bennett.png",
-    portraitPrompt: `${AUTHOR_BASE_PROMPT} Female politics correspondent in her late 30s, polished Washington newsroom style, navy blazer, realistic but fully fictional.`
+    portraitPrompt: buildAuthorPortraitPrompt({ name: "Olivia Bennett", title: "Politics Correspondent", beat: "The White House, Congress and campaigns" })
   },
   national: {
     name: "Daniel Reyes",
@@ -19,7 +18,7 @@ export const AUTHORS: Record<string, AuthorProfile> = {
     beat: "Public safety, courts and major U.S. stories",
     photoEligible: true,
     avatarPath: "authors/daniel-reyes.png",
-    portraitPrompt: `${AUTHOR_BASE_PROMPT} Male national affairs reporter in his early 40s, warm expression, charcoal jacket, realistic but fully fictional.`
+    portraitPrompt: buildAuthorPortraitPrompt({ name: "Daniel Reyes", title: "National Affairs Reporter", beat: "Public safety, courts and major U.S. stories" })
   },
   world: {
     name: "Nathan Brooks",
@@ -35,7 +34,7 @@ export const AUTHORS: Record<string, AuthorProfile> = {
     beat: "Markets, companies and the American economy",
     photoEligible: true,
     avatarPath: "authors/marcus-hill.png",
-    portraitPrompt: `${AUTHOR_BASE_PROMPT} Male business reporter in his mid 30s, simple blazer, newsroom headshot, realistic but fully fictional.`
+    portraitPrompt: buildAuthorPortraitPrompt({ name: "Marcus Hill", title: "Business and Economy Reporter", beat: "Markets, companies and the American economy" })
   },
   technology: {
     name: "Sophie Carter",
@@ -58,7 +57,7 @@ export const AUTHORS: Record<string, AuthorProfile> = {
     beat: "Medicine, public health and science",
     photoEligible: true,
     avatarPath: "authors/emily-parker.png",
-    portraitPrompt: `${AUTHOR_BASE_PROMPT} Female health and science reporter in her early 30s, soft neutral blazer, realistic but fully fictional.`
+    portraitPrompt: buildAuthorPortraitPrompt({ name: "Emily Parker", title: "Health and Science Reporter", beat: "Medicine, public health and science" })
   },
   sports: {
     name: "Jason Cole",

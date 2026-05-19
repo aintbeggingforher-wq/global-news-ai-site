@@ -5,7 +5,7 @@ A premium U.S. digital-news style site with:
 - multiple sections and section pages
 - detailed article pages
 - automatic author assignment by category
-- realistic AI-generated editorial images uploaded to Supabase Storage
+- realistic Higgsfield editorial photo illustrations uploaded to Supabase Storage
 - optional video support through official embeddable URLs
 - manual Texas warehouse fire route
 
@@ -146,3 +146,66 @@ Test NewsAPI:
 curl -sS -X GET "https://your-site.vercel.app/api/debug/news" \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
+
+
+## Higgsfield model/body fix
+
+This build uses the Higgsfield v2 documented text-to-image endpoint:
+
+```env
+HIGGSFIELD_MODEL=flux-pro/kontext/max/text-to-image
+```
+
+The request body is sent as:
+
+```json
+{
+  "input": {
+    "prompt": "...",
+    "aspect_ratio": "16:9",
+    "safety_tolerance": 2
+  }
+}
+```
+
+If Vercel still has the older `HIGGSFIELD_MODEL=bytedance/seedream/v4/text-to-image`, update it or delete it so the new default takes effect.
+
+## Realistic image prompt upgrade
+
+This build adds `lib/editorialPrompts.ts`, which creates stricter, topic-aware Higgsfield prompts. It reduces mismatched images and unrealistic scenes, especially for fire/disaster stories:
+
+- firefighters/civilians must stay outside flames
+- fire must originate from the building, not the ground
+- public-health stories use hospital/lab/public-health settings, not disaster visuals
+- politics, business, tech, climate, sports and culture each get specific visual rules
+- author portrait notes are no longer displayed in the UI
+
+## Rebuild posts cleanly
+
+1. In Supabase SQL Editor, run:
+
+```sql
+delete from posts;
+update posts set author_photo_note = null;
+```
+
+2. In Terminal, from your machine:
+
+```bash
+SITE="https://global-news-ai-site.vercel.app"
+SECRET="dailynews_secret_928374_world"
+
+curl -sS -X GET "$SITE/api/setup/author-photos" \
+  -H "Authorization: Bearer $SECRET"
+
+for i in 1 2 3 4; do
+  curl -sS -X GET "$SITE/api/cron/daily" \
+    -H "Authorization: Bearer $SECRET"
+  sleep 20
+  curl -sS -X GET "$SITE/api/maintenance/fill-images?limit=2" \
+    -H "Authorization: Bearer $SECRET"
+  sleep 20
+done
+```
+
+Or use `scripts/regenerate-news.sh` locally after setting `SITE` and `CRON_SECRET` if needed.

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { getAuthorForCategory, getPublicAuthorAvatarUrl } from "./authors";
 import { categorizeText, getSectionBySlug, SECTIONS } from "./categories";
 import { generateAndUploadImage } from "./image";
+import { buildPromptForArticle } from "./editorialPrompts";
 import { findOfficialYoutubeVideo } from "./youtube";
 import type { NewsPost, RawArticle } from "./types";
 
@@ -126,15 +127,8 @@ async function fetchDailyArticles(): Promise<RawArticle[]> {
   return out;
 }
 
-function defaultImagePrompt(article: RawArticle, category: string) {
-  const section = getSectionBySlug(category) || categorizeText(`${article.title} ${article.description || ""}`);
-  return [
-    `Create a highly realistic editorial news visual for a ${section.label} story.`,
-    `Story context: ${article.title}.`,
-    `Use premium U.S. digital-news photojournalism aesthetics: realistic light, believable location, sharp detail, natural camera perspective, serious editorial tone.`,
-    `Do not include logos, watermarks, text overlays, fake lower-thirds, identifiable private people or anything claiming to be a real event photograph.`,
-    `The image should look credible and immersive, while remaining a clearly illustrative AI editorial visual.`
-  ].join(" ");
+function defaultImagePrompt(article: RawArticle, category: string, summary?: string | null, subcategory?: string | null) {
+  return buildPromptForArticle(article, category, summary, subcategory);
 }
 
 function buildPostFromArticle(article: RawArticle, ai: any = {}): NewsPost {
@@ -159,11 +153,11 @@ function buildPostFromArticle(article: RawArticle, ai: any = {}): NewsPost {
     author_name: author.name,
     author_title: author.title,
     author_avatar_url: avatarUrl,
-    author_photo_note: avatarUrl ? "AI-generated fictional newsroom portrait." : null,
+    author_photo_note: null,
     reading_time: readingTime(body),
     source_name: article.sourceName || "Source",
     source_url: article.url,
-    image_prompt: safeText(ai.image_prompt) || defaultImagePrompt(article, category),
+    image_prompt: defaultImagePrompt(article, category, safeText(ai.summary) || article.description, safeText(ai.subcategory) || section.subcategories[0]),
     image_url: null,
     image_alt: safeText(ai.image_alt) || `photo illustration for ${article.title}`,
     video_url: null,
@@ -200,8 +194,8 @@ Editorial rules:
 - body must be 3 to 5 short paragraphs separated by \n\n.
 - dek is one strong sentence under the headline.
 - summary is 2 to 3 sentences.
-- image_prompt must request a photorealistic, high-detail editorial AI visual, but must not pretend to be an actual event photo.
-- image_alt must explicitly mention photo illustration.
+- image_prompt must be brief; the system will add strict visual safety rules after generation.
+- image_alt should describe the visual neutrally.
 
 Return JSON format:
 [
@@ -213,7 +207,7 @@ Return JSON format:
     "category":"national",
     "subcategory":"Public Safety",
     "image_prompt":"...",
-    "image_alt":"..."
+    "image_alt":"Editorial photo illustration for the story"
   }
 ]
 

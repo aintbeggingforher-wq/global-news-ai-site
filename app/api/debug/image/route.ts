@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const result = await generateAndUploadImage({
     postId: `debug-${Date.now()}`,
-    prompt: "Highly realistic AI-generated editorial image for a premium U.S. digital news site: a serious newsroom desk, papers, laptop, subtle American city skyline through a window, natural morning light, photorealistic camera perspective, no logos, no readable text, not a real photo."
+    prompt: "Highly realistic editorial photo illustration for a premium U.S. digital news site: a serious newsroom desk, papers, laptop, subtle American city skyline through a window, natural morning light, photorealistic camera perspective, no logos, no readable text, original editorial visual."
   });
   return NextResponse.json({ ok: !result.error, image_config: getImageConfigStatus(), image_url: result.imageUrl, error: result.error });
 }

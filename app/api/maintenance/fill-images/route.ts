@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAndUploadImage, getImageConfigStatus } from "@/lib/image";
+import { buildEditorialImagePrompt } from "@/lib/editorialPrompts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -41,16 +42,20 @@ export async function GET(req: NextRequest) {
   const limit = Number(req.nextUrl.searchParams.get("limit") || 2);
 
   const rowsRes = await supabaseFetch(
-    `posts?select=id,title,image_prompt,image_url&or=(image_url.is.null,image_url.eq.)&order=published_at.desc&limit=${limit}`
+    `posts?select=id,title,summary,category,subcategory,region,image_prompt,image_url&or=(image_url.is.null,image_url.eq.)&order=published_at.desc&limit=${limit}`
   );
 
   const rows = await rowsRes.json();
   const results = [];
 
   for (const post of rows) {
-    const prompt =
-      post.image_prompt ||
-      `Create a highly realistic AI-generated editorial image for a premium U.S. news story titled "${post.title}". Photorealistic editorial style, no logos, no text overlays, not an actual event photograph.`;
+    const prompt = buildEditorialImagePrompt({
+      title: post.title,
+      summary: post.summary,
+      category: post.category,
+      subcategory: post.subcategory,
+      region: post.region,
+    });
 
     const image = await generateAndUploadImage({ postId: post.id, prompt });
 
@@ -61,7 +66,7 @@ export async function GET(req: NextRequest) {
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
-        body: JSON.stringify({ image_url: image.imageUrl }),
+        body: JSON.stringify({ image_url: image.imageUrl, image_prompt: prompt, image_alt: `Editorial photo illustration for ${post.title}` }),
       });
     }
 

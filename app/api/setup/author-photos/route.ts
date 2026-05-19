@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const result = await generateAndUploadImage({
       postId: author.avatarPath || author.name,
       path: author.avatarPath,
-      prompt: author.portraitPrompt || `AI-generated fictional newsroom portrait for ${author.name}.`
+      prompt: author.portraitPrompt || `Professional newsroom profile headshot for ${author.name}, realistic staff-directory style, no logos, no text.`
     });
     results.push({ author: author.name, url: result.imageUrl, error: result.error });
   }

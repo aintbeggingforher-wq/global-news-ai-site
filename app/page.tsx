@@ -69,7 +69,7 @@ export default async function HomePage() {
                   <Link href={`/story/${lead.slug}`}><h1>{lead.title}</h1></Link>
                   <p>{lead.dek}</p>
                   <Byline category={lead.category} name={lead.author_name} title={lead.author_title} avatarUrl={lead.author_avatar_url} note={lead.author_photo_note} />
-                  <p className="note">Photo illustration, not an actual event photograph. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
+                  <p className="note">Editorial photo illustration. Source: <a className="source-link" href={lead.source_url} target="_blank" rel="noreferrer">{lead.source_name}</a></p>
                 </div>
               </article>}
               <aside className="rail">

@@ -13,7 +13,7 @@ const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const HF_KEY = process.env.HF_KEY;
 const HF_API_KEY = process.env.HF_API_KEY;
 const HF_API_SECRET = process.env.HF_API_SECRET;
-const HIGGSFIELD_MODEL = process.env.HIGGSFIELD_MODEL || "bytedance/seedream/v4/text-to-image";
+const HIGGSFIELD_MODEL = process.env.HIGGSFIELD_MODEL || "flux-pro/kontext/max/text-to-image";
 const HIGGSFIELD_BASE_URL = process.env.HIGGSFIELD_BASE_URL || "https://platform.higgsfield.ai";
 const HIGGSFIELD_POLL_LIMIT_MS = Number(process.env.HIGGSFIELD_POLL_LIMIT_MS || 55000);
 
@@ -68,6 +68,8 @@ function extractImageUrl(data: any): string | null {
     data?.result?.image_url ||
     data?.output?.images?.[0]?.url ||
     data?.output?.image_url ||
+    data?.jobs?.[0]?.results?.raw?.url ||
+    data?.jobs?.[0]?.results?.min?.url ||
     null
   );
 }
@@ -131,10 +133,12 @@ async function generateWithHiggsfield(opts: { postId: string; prompt: string; pa
       method: "POST",
       headers: higgsfieldHeaders(),
       body: JSON.stringify({
-        prompt: opts.prompt,
-        resolution: process.env.HIGGSFIELD_RESOLUTION || "2K",
-        aspect_ratio: process.env.HIGGSFIELD_ASPECT_RATIO || "16:9",
-        camera_fixed: false,
+        input: {
+          prompt: opts.prompt,
+          aspect_ratio: process.env.HIGGSFIELD_ASPECT_RATIO || "16:9",
+          safety_tolerance: Number(process.env.HIGGSFIELD_SAFETY_TOLERANCE || 2),
+          seed: Math.floor(Math.random() * 1000000),
+        },
       }),
     });
 

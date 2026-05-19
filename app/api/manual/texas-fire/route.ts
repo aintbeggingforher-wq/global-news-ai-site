@@ -3,6 +3,7 @@ import { insertPosts } from "@/lib/db";
 import { generateAndUploadImage } from "@/lib/image";
 import type { NewsPost } from "@/lib/types";
 import { getAuthorForCategory, getPublicAuthorAvatarUrl } from "@/lib/authors";
+import { buildEditorialImagePrompt } from "@/lib/editorialPrompts";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,13 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const author = getAuthorForCategory("national");
-  const imagePrompt = "Create a highly realistic AI-generated editorial image of firefighters responding to a large warehouse fire at night in Texas. Flames and thick smoke rise from an industrial building, emergency lights reflect on wet pavement, firefighters stand at a safe operational distance in turnout gear, realistic urban-industrial surroundings, premium American news photojournalism style, dramatic but believable, no logos, no text overlays, no identifiable private people, not an actual event photograph.";
+  const imagePrompt = buildEditorialImagePrompt({
+    title: "Texas Warehouse Fire Investigated as Suspected Arson",
+    summary: "A large Texas warehouse fire is being investigated as suspected arson after early indicators raised concerns that the blaze may have been intentionally set. Fire crews worked from a safe distance to contain flames and heavy smoke while officials secured the surrounding area.",
+    category: "national",
+    subcategory: "Public Safety",
+    region: "Texas"
+  });
   const image = await generateAndUploadImage({ postId: "manual-texas-warehouse-fire-001", prompt: imagePrompt });
 
   const post: NewsPost = {
@@ -34,13 +41,13 @@ export async function GET(req: NextRequest) {
     author_name: "Daniel Reyes",
     author_title: "National Affairs Reporter",
     author_avatar_url: getPublicAuthorAvatarUrl(author),
-    author_photo_note: "AI-generated fictional newsroom portrait.",
+    author_photo_note: null,
     reading_time: 3,
     source_name: "Local authorities / local news",
     source_url: "https://global-news-ai-site.vercel.app",
     image_prompt: imagePrompt,
     image_url: image.imageUrl,
-    image_alt: "AI-generated editorial illustration of firefighters responding to a warehouse fire in Texas.",
+    image_alt: "Editorial photo illustration of firefighters responding from a safe distance to a warehouse fire in Texas.",
     video_url: null,
     video_embed_url: null,
     video_source_name: null,
