@@ -258,3 +258,41 @@ for i in 1 2 3 4 5; do
   sleep 25
 done
 ```
+
+
+# V7 Expanded Newsroom
+
+This build adds `/api/manual/seed-expanded-newsroom`, which creates 30 richer posts:
+- 3 posts in each category
+- longer articles for several key posts
+- optional YouTube video attachment for selected posts if `YOUTUBE_API_KEY` is configured
+- Higgsfield image prompts for every post
+
+## Create the expanded newsroom
+
+```bash
+SITE="https://global-news-ai-site.vercel.app"
+SECRET="dailynews_secret_928374_world"
+
+curl -sS -X GET "$SITE/api/manual/seed-expanded-newsroom?replace=1&images=0&videos=1&limit=30" \
+  -H "Authorization: Bearer $SECRET"
+```
+
+## Fill images
+
+```bash
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  curl -sS -X GET "$SITE/api/maintenance/fill-images?limit=2" \
+    -H "Authorization: Bearer $SECRET"
+  sleep 25
+done
+```
+
+## Optional videos
+
+Add this Vercel variable for real YouTube videos:
+
+```env
+YOUTUBE_API_KEY=your_youtube_data_api_key
+VIDEO_PROBABILITY=1
+```
