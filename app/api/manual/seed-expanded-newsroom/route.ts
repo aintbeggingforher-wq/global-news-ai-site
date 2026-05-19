@@ -46,7 +46,12 @@ function slugify(input: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
-    .slice(0, 82);
+    .slice(0, 72);
+}
+
+function uniqueSlug(title: string, id: string) {
+  const suffix = id.replace(/[^a-z0-9-]/gi, "").slice(-10);
+  return `${slugify(title)}-${suffix}`;
 }
 
 async function supabaseFetch(path: string, init?: RequestInit) {
@@ -626,7 +631,7 @@ function buildSeedPosts(limit: number): SeedPost[] {
 
   return seedStories.slice(0, limit).map((post) => ({
     ...post,
-    slug: slugify(post.title),
+    slug: uniqueSlug(post.title, post.id),
     region: "USA",
     image_url: null,
     video_url: null,
@@ -638,82 +643,95 @@ function buildSeedPosts(limit: number): SeedPost[] {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || seedStories.length), seedStories.length);
-  const withImages = req.nextUrl.searchParams.get("images") === "1";
-  const withVideos = req.nextUrl.searchParams.get("videos") === "1";
-  const imageLimit = Math.min(Number(req.nextUrl.searchParams.get("imageLimit") || 2), limit);
-  const replace = req.nextUrl.searchParams.get("replace") === "1";
-
-  if (replace) {
-    await deleteExpandedSeedPosts();
-  }
-
-  const selected = buildSeedPosts(limit);
-  const results = [];
-
-  for (let i = 0; i < selected.length; i++) {
-    const post = selected[i];
-
-    if (withVideos && post.video_target) {
-      const video = await findOfficialYoutubeVideo({
-        title: post.title,
-        sourceName: post.source_name,
-        category: post.category,
-      });
-
-      if (video) {
-        post.video_url = video.video_url;
-        post.video_embed_url = video.video_embed_url;
-        post.video_source_name = video.video_source_name;
-        post.video_title = video.video_title;
+  try {
+      if (!isAuthorized(req)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-    }
 
-    if (withImages && i < imageLimit) {
-      const image = await generateAndUploadImage({
-        postId: post.id,
-        prompt: post.image_prompt,
+      const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") || seedStories.length), seedStories.length);
+      const withImages = req.nextUrl.searchParams.get("images") === "1";
+      const withVideos = req.nextUrl.searchParams.get("videos") === "1";
+      const imageLimit = Math.min(Number(req.nextUrl.searchParams.get("imageLimit") || 2), limit);
+      const replace = req.nextUrl.searchParams.get("replace") === "1";
+
+      if (replace) {
+        await deleteExpandedSeedPosts();
+      }
+
+      const selected = buildSeedPosts(limit);
+      const results = [];
+
+      for (let i = 0; i < selected.length; i++) {
+        const post = selected[i];
+
+        if (withVideos && post.video_target) {
+          const video = await findOfficialYoutubeVideo({
+            title: post.title,
+            sourceName: post.source_name,
+            category: post.category,
+          });
+
+          if (video) {
+            post.video_url = video.video_url;
+            post.video_embed_url = video.video_embed_url;
+            post.video_source_name = video.video_source_name;
+            post.video_title = video.video_title;
+          }
+        }
+
+        if (withImages && i < imageLimit) {
+          const image = await generateAndUploadImage({
+            postId: post.id,
+            prompt: post.image_prompt,
+          });
+
+          post.image_url = image.imageUrl || null;
+
+          results.push({
+            id: post.id,
+            title: post.title,
+            image_url: image.imageUrl,
+            image_error: image.error,
+          });
+        }
+
+        const { video_target, ...dbPost } = post;
+
+        await supabaseFetch("posts?on_conflict=id", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates,return=minimal",
+          },
+          body: JSON.stringify(dbPost),
+        });
+      }
+
+      const counts = selected.reduce((acc: Record<string, number>, post) => {
+        acc[post.category] = (acc[post.category] || 0) + 1;
+        return acc;
+      }, {});
+
+      return NextResponse.json({
+        ok: true,
+        inserted: selected.length,
+        categories: counts,
+        videos_requested: withVideos,
+        images_requested: withImages,
+        images_attempted: withImages ? imageLimit : 0,
+        replace,
+        results,
       });
+  } catch (error: any) {
+    console.error("seed-expanded-newsroom failed", error);
 
-      post.image_url = image.imageUrl || null;
-
-      results.push({
-        id: post.id,
-        title: post.title,
-        image_url: image.imageUrl,
-        image_error: image.error,
-      });
-    }
-
-const { video_target, ...dbPost } = post;
-
-await supabaseFetch("posts?on_conflict=id", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Prefer: "resolution=merge-duplicates,return=minimal",
-  },
-  body: JSON.stringify(dbPost),
-});
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error?.message || "Unknown seed-expanded-newsroom error",
+        hint: "Check Supabase columns, duplicate slugs, CRON_SECRET, and YOUTUBE_API_KEY. This V7.1 route removes internal fields before insert and uses unique slugs.",
+      },
+      { status: 500 }
+    );
   }
-
-  const counts = selected.reduce((acc: Record<string, number>, post) => {
-    acc[post.category] = (acc[post.category] || 0) + 1;
-    return acc;
-  }, {});
-
-  return NextResponse.json({
-    ok: true,
-    inserted: selected.length,
-    categories: counts,
-    videos_requested: withVideos,
-    images_requested: withImages,
-    images_attempted: withImages ? imageLimit : 0,
-    replace,
-    results,
-  });
 }

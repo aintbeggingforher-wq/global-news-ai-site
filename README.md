@@ -296,3 +296,13 @@ Add this Vercel variable for real YouTube videos:
 YOUTUBE_API_KEY=your_youtube_data_api_key
 VIDEO_PROBABILITY=1
 ```
+
+
+# V7.1 Fix
+
+This build fixes the `HTTP_STATUS:500` on `/api/manual/seed-expanded-newsroom`.
+
+Fixes:
+- `video_target` is no longer sent to Supabase because it is only an internal routing flag.
+- Slugs now include a unique suffix from the post id to avoid conflicts with older/manual posts.
+- The route returns detailed JSON errors instead of a silent 500.
