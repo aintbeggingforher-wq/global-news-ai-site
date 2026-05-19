@@ -209,3 +209,52 @@ done
 ```
 
 Or use `scripts/regenerate-news.sh` locally after setting `SITE` and `CRON_SECRET` if needed.
+
+
+# V6 All Solved — Higgsfield prompt fix
+
+This build fixes the Higgsfield error:
+
+```txt
+"prompt" is a required property
+```
+
+The image request now sends `prompt` at the top level of the JSON body, which matches the current endpoint response your deployed app was receiving.
+
+## Required Vercel variables
+
+```env
+IMAGE_PROVIDER=higgsfield
+GENERATE_IMAGES=true
+HF_KEY=your_api_key:your_api_secret
+HIGGSFIELD_BASE_URL=https://platform.higgsfield.ai
+HIGGSFIELD_MODEL=flux-pro/kontext/max/text-to-image
+HIGGSFIELD_ASPECT_RATIO=16:9
+HIGGSFIELD_SAFETY_TOLERANCE=2
+HIGGSFIELD_POLL_LIMIT_MS=55000
+```
+
+## Create all seed posts
+
+```bash
+SITE="https://global-news-ai-site.vercel.app"
+SECRET="dailynews_secret_928374_world"
+
+curl -sS -X GET "$SITE/api/manual/seed-newsroom?replace=1&images=0&limit=10" \
+  -H "Authorization: Bearer $SECRET"
+```
+
+## Fill images with Higgsfield
+
+```bash
+SITE="https://global-news-ai-site.vercel.app"
+SECRET="dailynews_secret_928374_world"
+
+for i in 1 2 3 4 5; do
+  echo "===== IMAGE FILL RUN $i ====="
+  curl -sS -X GET "$SITE/api/maintenance/fill-images?limit=2" \
+    -H "Authorization: Bearer $SECRET"
+  echo ""
+  sleep 25
+done
+```
